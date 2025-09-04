@@ -19,11 +19,21 @@ export default function BlogList() {
 
   const fetchBlogPosts = async () => {
     try {
+      console.log('📚 Fetching blog posts...');
       const response = await fetch('/api/blog/list');
       const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ Failed to fetch blog posts:', data);
+        setBlogPosts([]);
+        return;
+      }
+      
+      console.log('✅ Blog posts fetched:', data.blogPosts?.length || 0);
       setBlogPosts(data.blogPosts || []);
     } catch (error) {
       console.error('Error fetching blog posts:', error);
+      setBlogPosts([]);
     } finally {
       setLoading(false);
     }
@@ -61,13 +71,25 @@ export default function BlogList() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-slate-600" />
-              Your Blog Posts ({blogPosts.length})
-            </CardTitle>
-            <CardDescription>
-              Manage your saved blog posts and drafts
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-slate-600" />
+                  Your Blog Posts ({blogPosts.length})
+                </CardTitle>
+                <CardDescription>
+                  Manage your saved blog posts and drafts
+                </CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={fetchBlogPosts}
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : 'Refresh'}
+              </Button>
+            </div>
           </CardHeader>
         </Card>
       </motion.div>

@@ -131,6 +131,12 @@ export default function ContentEditor() {
         {
           loading: 'Saving your blog post...',
           success: (result) => {
+            // Show success message with action to view saved posts
+            setTimeout(() => {
+              toast.success('✨ Tip: Check "My Posts" tab to view your saved content!', {
+                duration: 4000
+              });
+            }, 2000);
             return `Blog post saved successfully! ID: ${result.blogPost?.id?.substring(0, 8)}...`;
           },
           error: (error) => {
