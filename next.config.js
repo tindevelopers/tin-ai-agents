@@ -1,25 +1,15 @@
-const path = require('path');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  distDir: process.env.NEXT_DIST_DIR || '.next',
-  output: process.env.NEXT_OUTPUT_MODE,
-  outputFileTracingRoot: path.join(__dirname, '../'),
-  allowedDevOrigins: [
-    '*.preview.abacusai.app',
-    'localhost',
-    '127.0.0.1'
-  ],
-  experimental: {
-    // Moved outputFileTracingRoot to top level for Next.js 15 compatibility
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: false,
   },
-  images: { unoptimized: true },
+  images: { 
+    unoptimized: true 
+  },
+  // Simplified config for Vercel compatibility
 };
 
 module.exports = nextConfig;
