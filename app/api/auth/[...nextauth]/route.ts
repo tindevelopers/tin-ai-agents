@@ -6,6 +6,8 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
+export const runtime = 'nodejs'; // Edge runtime cannot open TCP sockets (Prisma won't work)
+
 const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [

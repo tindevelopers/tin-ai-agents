@@ -3,6 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+export const runtime = 'nodejs'; // Edge runtime cannot open TCP sockets (Prisma won't work)
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Keyword save attempt started');

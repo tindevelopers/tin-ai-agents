@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
+export const runtime = 'nodejs'; // Edge runtime cannot open TCP sockets (Prisma won't work)
+
 const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),

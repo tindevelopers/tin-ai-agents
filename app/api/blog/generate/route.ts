@@ -2,6 +2,8 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 
+export const runtime = 'nodejs'; // Edge runtime cannot open TCP sockets (Prisma won't work)
+
 export async function POST(request: NextRequest) {
   try {
     const { title, keywords, outline, tone, wordCount } = await request.json();
