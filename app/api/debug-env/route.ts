@@ -6,7 +6,7 @@ export async function GET() {
     console.log('🔍 Environment variables debug check');
     
     const databaseUrl = process.env.DATABASE_URL;
-    let urlAnalysis = 'NOT_SET';
+    let urlAnalysis: any = 'NOT_SET';
     
     if (databaseUrl) {
       try {
