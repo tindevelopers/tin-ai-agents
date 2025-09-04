@@ -89,26 +89,59 @@ export default function ContentEditor() {
   };
 
   const saveContent = async () => {
+    if (!title.trim()) {
+      toast.error('Please enter a title before saving');
+      return;
+    }
+    
+    if (!content.trim()) {
+      toast.error('Please generate or enter content before saving');
+      return;
+    }
+
     try {
       const keywordArray = keywords ? keywords.split(',').map(k => k.trim()).filter(k => k) : [];
       
-      const response = await fetch('/api/blog/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          content,
-          keywords: keywordArray,
-          status: 'draft',
-        }),
-      });
+      toast.promise(
+        (async () => {
+          const response = await fetch('/api/blog/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: title.trim(),
+              content: content.trim(),
+              keywords: keywordArray,
+              status: 'draft',
+            }),
+          });
 
-      const result = await response.json();
-      if (result.success) {
-        alert('Content saved successfully!');
-      }
+          const result = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(result.details || result.error || 'Failed to save content');
+          }
+          
+          if (result.success) {
+            console.log('✅ Blog post saved with ID:', result.blogPost?.id);
+            return result;
+          } else {
+            throw new Error(result.error || 'Unknown error occurred');
+          }
+        })(),
+        {
+          loading: 'Saving your blog post...',
+          success: (result) => {
+            return `Blog post saved successfully! ID: ${result.blogPost?.id?.substring(0, 8)}...`;
+          },
+          error: (error) => {
+            console.error('❌ Save error details:', error);
+            return `Failed to save: ${error.message}`;
+          }
+        }
+      );
     } catch (error) {
       console.error('Error saving content:', error);
+      toast.error('An unexpected error occurred while saving');
     }
   };
 
