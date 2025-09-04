@@ -5,9 +5,32 @@ export async function GET() {
   try {
     console.log('🔍 Environment variables debug check');
     
+    const databaseUrl = process.env.DATABASE_URL;
+    let urlAnalysis = 'NOT_SET';
+    
+    if (databaseUrl) {
+      try {
+        const url = new URL(databaseUrl);
+        urlAnalysis = {
+          protocol: url.protocol,
+          hostname: url.hostname,
+          port: url.port,
+          pathname: url.pathname,
+          username: url.username,
+          hasPassword: !!url.password,
+          passwordLength: url.password?.length || 0,
+          fullLength: databaseUrl.length,
+          startsWithPostgres: databaseUrl.startsWith('postgresql://'),
+          containsSpecialChars: /[!@#$%^&*()+=\[\]{}|\\:";'<>?,./]/.test(url.password || ''),
+        };
+      } catch (e) {
+        urlAnalysis = `INVALID_URL: ${String(e)}`;
+      }
+    }
+    
     const envVars = {
-      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
-      DATABASE_URL_PREFIX: process.env.DATABASE_URL?.substring(0, 20) || 'EMPTY',
+      DATABASE_URL: databaseUrl ? 'SET' : 'MISSING',
+      DATABASE_URL_ANALYSIS: urlAnalysis,
       SUPABASE_URL: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'MISSING',
       ABACUSAI_API_KEY: process.env.ABACUSAI_API_KEY ? 'SET' : 'MISSING',
