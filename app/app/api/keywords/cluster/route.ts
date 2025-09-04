@@ -33,17 +33,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     const clusterData = JSON.parse(data?.choices?.[0]?.message?.content || '{"clusters": []}');
     
-    // Save clusters to database
-    for (const cluster of clusterData.clusters) {
-      await prisma.keywordCluster.create({
-        data: {
-          name: cluster.name,
-          keywords: JSON.stringify(cluster.keywords),
-          description: cluster.description,
-        },
-      });
-    }
-    
+    // Return clustering results without auto-saving
     return NextResponse.json(clusterData);
   } catch (error) {
     console.error('Keywords cluster error:', error);
