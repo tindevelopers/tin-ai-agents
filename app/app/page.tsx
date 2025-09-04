@@ -95,6 +95,7 @@ export default function HomePage() {
               return (
                 <button
                   key={tab.id}
+                  data-tab={tab.id}
                   onClick={() => setActiveTab(tab.id as TabType)}
                   className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                     activeTab === tab.id

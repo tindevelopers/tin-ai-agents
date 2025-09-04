@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookOpen, Target, Clock, TrendingUp, Search, Bookmark } from 'lucide-react';
+import { BookOpen, Target, Clock, TrendingUp, Search, Bookmark, PenTool } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TopicSuggestion, KeywordCluster } from '@/lib/types';
 import { toast } from 'sonner';
@@ -68,6 +68,24 @@ export default function TopicSuggestions() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const createBlogFromTopic = (topic: TopicSuggestion) => {
+    // Store the topic data for the content editor
+    localStorage.setItem('contentIdeaData', JSON.stringify({
+      title: topic.topic,
+      description: topic.angle,
+      keywords: topic.targetKeywords || [],
+      difficulty: topic.difficulty,
+      estimatedLength: topic.estimatedLength,
+      from: 'topic-suggestion'
+    }));
+    
+    // Navigate to content editor tab
+    const contentEditorTab = document.querySelector('[data-tab="editor"]') as HTMLElement;
+    contentEditorTab?.click();
+    
+    toast.success('Topic loaded in editor!');
   };
 
   useEffect(() => {
@@ -264,11 +282,19 @@ export default function TopicSuggestions() {
                           )) || []}
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
                           <Clock className="w-4 h-4" />
                           {topic.estimatedLength}
                         </div>
+                        <Button
+                          size="sm"
+                          onClick={() => createBlogFromTopic(topic)}
+                          className="flex items-center gap-1"
+                        >
+                          <PenTool className="w-3 h-3" />
+                          Generate Blog
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

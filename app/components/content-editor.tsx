@@ -1,15 +1,16 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import { toast } from 'sonner';
 
 export default function ContentEditor() {
   const [title, setTitle] = useState('');
@@ -21,6 +22,7 @@ export default function ContentEditor() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [contentIdeaSource, setContentIdeaSource] = useState<any>(null);
 
   const generateContent = async () => {
     if (!title.trim()) return;
@@ -120,6 +122,30 @@ export default function ContentEditor() {
     document.body.removeChild(element);
   };
 
+  const clearContentIdeaData = () => {
+    setContentIdeaSource(null);
+    localStorage.removeItem('contentIdeaData');
+  };
+
+  // Check for pre-populated content idea data on component mount
+  useEffect(() => {
+    const contentIdeaData = localStorage.getItem('contentIdeaData');
+    if (contentIdeaData) {
+      try {
+        const ideaData = JSON.parse(contentIdeaData);
+        setTitle(ideaData.title || '');
+        setKeywords(ideaData.keywords?.join(', ') || '');
+        setOutline(ideaData.description || '');
+        setContentIdeaSource(ideaData);
+        
+        toast.success('Content idea loaded! Ready to generate your blog post.');
+      } catch (error) {
+        console.error('Error parsing content idea data:', error);
+        localStorage.removeItem('contentIdeaData');
+      }
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       <motion.div 
@@ -137,6 +163,31 @@ export default function ContentEditor() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {contentIdeaSource && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">
+                        Content loaded from idea: "{contentIdeaSource.title}"
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Category: {contentIdeaSource.category} • Keywords: {contentIdeaSource.keywords?.length || 0}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearContentIdeaData}
+                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">

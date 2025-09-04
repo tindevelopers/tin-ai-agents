@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lightbulb, Sparkles, Tag, Users, Search, Bookmark, Target } from 'lucide-react';
+import { Lightbulb, Sparkles, Tag, Users, Search, Bookmark, Target, PenTool } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ContentIdea, KeywordCluster } from '@/lib/types';
 import { toast } from 'sonner';
@@ -68,6 +68,23 @@ export default function ContentIdeas() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const createBlogFromIdea = (idea: ContentIdea) => {
+    // Store the content idea data for the content editor
+    localStorage.setItem('contentIdeaData', JSON.stringify({
+      title: idea.title,
+      description: idea.description,
+      keywords: idea.keywords || [],
+      category: idea.category,
+      from: 'content-idea'
+    }));
+    
+    // Navigate to content editor tab
+    const contentEditorTab = document.querySelector('[data-tab="editor"]') as HTMLElement;
+    contentEditorTab?.click();
+    
+    toast.success('Content idea loaded in editor!');
   };
 
   useEffect(() => {
@@ -273,6 +290,14 @@ export default function ContentIdeas() {
                           <Users className="w-4 h-4" />
                           Content Idea #{index + 1}
                         </div>
+                        <Button
+                          size="sm"
+                          onClick={() => createBlogFromIdea(idea)}
+                          className="flex items-center gap-1"
+                        >
+                          <PenTool className="w-3 h-3" />
+                          Generate Blog
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
