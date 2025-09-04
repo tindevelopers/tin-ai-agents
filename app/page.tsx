@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,14 +18,19 @@ import {
   Target,
   TrendingUp
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import KeywordSearch from '@/components/keyword-search';
-import KeywordClustering from '@/components/keyword-clustering';
-import ContentIdeas from '@/components/content-ideas';
-import TopicSuggestions from '@/components/topic-suggestions';
-import ContentEditor from '@/components/content-editor';
-import ContentStrategyGenerator from '@/components/content-strategy';
-import BlogList from '@/components/blog-list';
+
+// Dynamic imports for components with animations to prevent hydration issues
+const KeywordSearch = dynamic(() => import('@/components/keyword-search'), { ssr: false });
+const KeywordClustering = dynamic(() => import('@/components/keyword-clustering'), { ssr: false });
+const ContentIdeas = dynamic(() => import('@/components/content-ideas'), { ssr: false });
+const TopicSuggestions = dynamic(() => import('@/components/topic-suggestions'), { ssr: false });
+const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
+const ContentStrategyGenerator = dynamic(() => import('@/components/content-strategy'), { ssr: false });
+const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
+
+// Dynamic import for framer motion to prevent hydration issues
+const MotionDiv = dynamic(() => import('framer-motion').then((mod) => mod.motion.div), { ssr: false });
+const AnimatePresence = dynamic(() => import('framer-motion').then((mod) => mod.AnimatePresence), { ssr: false });
 
 type TabType = 'overview' | 'keywords' | 'clustering' | 'ideas' | 'topics' | 'strategy' | 'editor' | 'blog-list';
 
@@ -115,7 +121,7 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
-          <motion.div
+          <MotionDiv
             key={activeTab}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -123,7 +129,7 @@ export default function HomePage() {
             transition={{ duration: 0.2 }}
           >
             {renderTabContent()}
-          </motion.div>
+          </MotionDiv>
         </AnimatePresence>
       </main>
     </div>
@@ -179,11 +185,11 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
   return (
     <div className="space-y-12">
       {/* Hero Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-6"
-      >
+        <MotionDiv
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-6"
+        >
         <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
           <Sparkles className="w-4 h-4" />
           AI-Powered Content Creation
@@ -213,14 +219,14 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
             <Search className="w-5 h-5 ml-2" />
           </Button>
         </div>
-      </motion.div>
+        </MotionDiv>
 
       {/* Features Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {features.map((feature, index) => {
           const Icon = feature.icon;
           return (
-            <motion.div
+            <MotionDiv
               key={feature.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -248,13 +254,13 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </MotionDiv>
           );
         })}
       </div>
 
       {/* Stats Section */}
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
@@ -278,14 +284,14 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
             <div className="text-blue-200">Workflow</div>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
 
       {/* Getting Started */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-      >
+      <MotionDiv
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -328,7 +334,8 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+        </MotionDiv>
+      
     </div>
   );
 }
