@@ -27,7 +27,7 @@ export async function GET() {
     `;
 
     // Try a simple insert test
-    let insertTest = 'NOT_ATTEMPTED';
+    let insertTest: any = 'NOT_ATTEMPTED';
     try {
       const testPost = await prisma.blogPost.create({
         data: {
