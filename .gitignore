@@ -3,15 +3,6 @@
 .cache
 .build
 *.nfs*
-
-# Environment variables (sensitive)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-!.env.example
-
 **/.yarn/
 !**/.yarn/patches
 !**/.yarn/plugins
