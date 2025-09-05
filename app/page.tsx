@@ -1,11 +1,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import BreadcrumbNavigation, { useBreadcrumb } from '@/components/breadcrumb-navigation';
 import { 
   PenTool, 
   Search, 
@@ -43,6 +44,51 @@ const tabs = [
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [editingPostTitle, setEditingPostTitle] = useState<string>('');
+  const { buildBreadcrumb } = useBreadcrumb();
+
+  // Listen for editing state changes from localStorage and events
+  useEffect(() => {
+    const updateEditingState = () => {
+      const editPostData = localStorage.getItem('editPostData');
+      if (editPostData) {
+        try {
+          const postData = JSON.parse(editPostData);
+          setEditingPostTitle(postData.title || '');
+        } catch (error) {
+          console.error('Error parsing edit post data:', error);
+          setEditingPostTitle('');
+        }
+      } else {
+        setEditingPostTitle('');
+      }
+    };
+
+    // Initial check
+    updateEditingState();
+
+    // Listen for localStorage changes and custom events
+    const handleEditRequest = () => updateEditingState();
+    const handleCreateNewPost = () => setEditingPostTitle('');
+    const handleNavigateToTab = (event: CustomEvent) => {
+      const { tab } = event.detail;
+      if (tab && tabs.find(t => t.id === tab)) {
+        setActiveTab(tab as TabType);
+      }
+    };
+    
+    window.addEventListener('postEditRequested', handleEditRequest);
+    window.addEventListener('createNewPost', handleCreateNewPost);
+    window.addEventListener('navigateToTab', handleNavigateToTab as EventListener);
+    window.addEventListener('storage', updateEditingState);
+
+    return () => {
+      window.removeEventListener('postEditRequested', handleEditRequest);
+      window.removeEventListener('createNewPost', handleCreateNewPost);
+      window.removeEventListener('navigateToTab', handleNavigateToTab as EventListener);
+      window.removeEventListener('storage', updateEditingState);
+    };
+  }, []);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -113,6 +159,22 @@ export default function HomePage() {
           </div>
         </div>
       </nav>
+
+      {/* Breadcrumb Navigation */}
+      {activeTab !== 'overview' && (
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <BreadcrumbNavigation
+              items={buildBreadcrumb(
+                activeTab,
+                editingPostTitle,
+                () => setActiveTab('overview'),
+                () => setActiveTab('blog-list')
+              )}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
@@ -214,6 +214,12 @@ export default function ContentEditor() {
     localStorage.removeItem('contentIdeaData');
   };
 
+  const navigateToPostsList = () => {
+    // Dispatch event to switch to My Posts tab
+    window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'blog-list' } }));
+    toast.success('📋 Navigating to your posts...');
+  };
+
   const loadEditPostData = (postData: any) => {
     try {
       console.log('📖 Loading edit post data:', postData);
@@ -302,13 +308,28 @@ export default function ContentEditor() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PenTool className="w-5 h-5 text-emerald-600" />
-              AI Content Editor
-            </CardTitle>
-            <CardDescription>
-              Generate and edit high-quality blog content with AI assistance
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <PenTool className="w-5 h-5 text-emerald-600" />
+                  AI Content Editor
+                </CardTitle>
+                <CardDescription>
+                  Generate and edit high-quality blog content with AI assistance
+                </CardDescription>
+              </div>
+              {editingPostSource && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={navigateToPostsList}
+                  className="ml-4"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Posts
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {editingPostSource && (
