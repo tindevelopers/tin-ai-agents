@@ -2,19 +2,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus } from 'lucide-react';
+import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
+
+// Dynamic import to prevent SSR issues
+const ContentEditor = dynamic(() => import('@/components/content-editor'), { 
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+});
 
 export default function BlogList() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingModalPost, setEditingModalPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
     fetchBlogPosts();
@@ -89,6 +100,34 @@ export default function BlogList() {
     }
   };
 
+  const editPostInModal = (post: BlogPost) => {
+    try {
+      // Save post data to localStorage for the content editor
+      const editData = {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        keywords: post.keywords,
+        status: post.status
+      };
+      
+      console.log('📝 Loading post data for modal editing:', editData);
+      localStorage.setItem('editPostData', JSON.stringify(editData));
+      
+      // Dispatch a custom event to notify the content editor
+      window.dispatchEvent(new CustomEvent('postEditRequested', { detail: editData }));
+      
+      // Open the modal
+      setEditingModalPost(post);
+      setShowEditModal(true);
+      
+      toast.success('✏️ Post loaded for editing in modal!');
+    } catch (error) {
+      console.error('❌ Error preparing post for modal editing:', error);
+      toast.error('Failed to load post for editing. Please try again.');
+    }
+  };
+
   const deletePost = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this blog post? This action cannot be undone.')) {
       return;
@@ -120,6 +159,20 @@ export default function BlogList() {
   const closePreview = () => {
     setShowPreview(false);
     setSelectedPost(null);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingModalPost(null);
+    
+    // Clear editing data from localStorage to prevent conflicts
+    localStorage.removeItem('editPostData');
+    
+    // Dispatch event to clear the content editor
+    window.dispatchEvent(new CustomEvent('createNewPost'));
+    
+    // Refresh the post list in case changes were made
+    fetchBlogPosts();
   };
 
   const createNewPost = () => {
@@ -244,7 +297,7 @@ export default function BlogList() {
                       <Button 
                         variant="default" 
                         size="sm"
-                        onClick={() => editPost(post)}
+                        onClick={() => editPostInModal(post)}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       >
                         <Edit className="w-4 h-4 mr-2" />
@@ -342,6 +395,37 @@ export default function BlogList() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Post Modal with Scrollable Content */}
+      {showEditModal && editingModalPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-6xl w-full h-[95vh] overflow-hidden flex flex-col">
+            {/* Modal Header - Fixed */}
+            <div className="flex-shrink-0 p-6 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Edit Post</h2>
+                  <p className="text-lg text-gray-600 mt-1">{editingModalPost.title}</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={closeEditModal}
+                  className="flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Close
+                </Button>
+              </div>
+            </div>
+            
+            {/* Modal Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <ContentEditor />
             </div>
           </div>
         </div>
