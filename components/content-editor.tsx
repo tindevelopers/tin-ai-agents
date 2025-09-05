@@ -177,44 +177,89 @@ export default function ContentEditor() {
   };
 
   const clearEditPostData = () => {
+    console.log('🗑️ Clearing edit post data');
     setEditingPostSource(null);
     setEditingPostId(null);
     localStorage.removeItem('editPostData');
+    
+    // Reset form fields when clearing edit data
+    setTitle('');
+    setContent('');
+    setKeywords('');
+    setOutline('');
+    
+    toast.success('✨ Edit mode cleared - ready for new content!');
+  };
+
+  const loadEditPostData = (postData: any) => {
+    try {
+      console.log('📖 Loading edit post data:', postData);
+      setEditingPostId(postData.id);
+      setTitle(postData.title || '');
+      setKeywords(Array.isArray(postData.keywords) ? postData.keywords.join(', ') : '');
+      setContent(postData.content || '');
+      setEditingPostSource(postData);
+      
+      // Clear any existing content idea data
+      clearContentIdeaData();
+      
+      toast.success('✏️ Blog post loaded for editing!', {
+        description: `Editing: ${postData.title || 'Untitled'}`
+      });
+    } catch (error) {
+      console.error('❌ Error loading edit post data:', error);
+      toast.error('Failed to load post for editing');
+    }
   };
 
   // Check for pre-populated data on component mount
   useEffect(() => {
+    console.log('🚀 Content Editor mounted, checking for saved data...');
+    
     const contentIdeaData = localStorage.getItem('contentIdeaData');
     const editPostData = localStorage.getItem('editPostData');
     
     if (editPostData) {
       try {
         const postData = JSON.parse(editPostData);
-        setEditingPostId(postData.id);
-        setTitle(postData.title || '');
-        setKeywords(Array.isArray(postData.keywords) ? postData.keywords.join(', ') : '');
-        setContent(postData.content || '');
-        setEditingPostSource(postData);
-        
-        toast.success('Blog post loaded for editing!');
+        console.log('✅ Found edit post data in localStorage:', postData);
+        loadEditPostData(postData);
       } catch (error) {
-        console.error('Error parsing edit post data:', error);
+        console.error('❌ Error parsing edit post data:', error);
         localStorage.removeItem('editPostData');
+        toast.error('Failed to load editing data - corrupted data removed');
       }
     } else if (contentIdeaData) {
       try {
         const ideaData = JSON.parse(contentIdeaData);
+        console.log('✅ Found content idea data in localStorage:', ideaData);
         setTitle(ideaData.title || '');
         setKeywords(ideaData.keywords?.join(', ') || '');
         setOutline(ideaData.description || '');
         setContentIdeaSource(ideaData);
         
-        toast.success('Content idea loaded! Ready to generate your blog post.');
+        toast.success('💡 Content idea loaded! Ready to generate your blog post.');
       } catch (error) {
-        console.error('Error parsing content idea data:', error);
+        console.error('❌ Error parsing content idea data:', error);
         localStorage.removeItem('contentIdeaData');
+        toast.error('Failed to load content idea - corrupted data removed');
       }
+    } else {
+      console.log('ℹ️ No saved data found in localStorage');
     }
+
+    // Listen for real-time edit requests
+    const handleEditRequest = (event: CustomEvent) => {
+      console.log('🎯 Received edit request event:', event.detail);
+      loadEditPostData(event.detail);
+    };
+
+    window.addEventListener('postEditRequested', handleEditRequest as EventListener);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('postEditRequested', handleEditRequest as EventListener);
+    };
   }, []);
 
   return (

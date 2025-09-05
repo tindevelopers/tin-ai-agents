@@ -64,16 +64,29 @@ export default function BlogList() {
   };
 
   const editPost = (post: BlogPost) => {
-    // Save post data to localStorage for the content editor
-    localStorage.setItem('editPostData', JSON.stringify({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      keywords: post.keywords,
-      status: post.status
-    }));
-    
-    toast.success('Post loaded for editing! Switch to "Content Editor" tab.');
+    try {
+      // Save post data to localStorage for the content editor
+      const editData = {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        keywords: post.keywords,
+        status: post.status
+      };
+      
+      console.log('📝 Saving edit data to localStorage:', editData);
+      localStorage.setItem('editPostData', JSON.stringify(editData));
+      
+      // Dispatch a custom event to notify the content editor
+      window.dispatchEvent(new CustomEvent('postEditRequested', { detail: editData }));
+      
+      toast.success('✏️ Post loaded for editing! Switch to "Content Editor" tab to continue.', {
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error('❌ Error preparing post for editing:', error);
+      toast.error('Failed to prepare post for editing. Please try again.');
+    }
   };
 
   const deletePost = async (postId: string) => {
