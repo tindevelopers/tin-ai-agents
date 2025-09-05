@@ -28,10 +28,13 @@ const TopicSuggestions = dynamic(() => import('@/components/topic-suggestions'),
 const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
 const ContentStrategyGenerator = dynamic(() => import('@/components/content-strategy'), { ssr: false });
 const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
+const DashboardView = dynamic(() => import('@/components/dashboard-view'), { ssr: false });
+const NewPostModal = dynamic(() => import('@/components/new-post-modal'), { ssr: false });
 
 type TabType = 'overview' | 'keywords' | 'clustering' | 'ideas' | 'topics' | 'strategy' | 'editor' | 'blog-list';
 
 const tabs = [
+  { id: 'blog-list', label: 'Dashboard', icon: FileText },
   { id: 'overview', label: 'Overview', icon: Sparkles },
   { id: 'keywords', label: 'Keyword Research', icon: Search },
   { id: 'clustering', label: 'Clustering', icon: Layers },
@@ -39,11 +42,12 @@ const tabs = [
   { id: 'topics', label: 'Topic Suggestions', icon: BookOpen },
   { id: 'strategy', label: 'Strategy', icon: Settings },
   { id: 'editor', label: 'Content Editor', icon: PenTool },
-  { id: 'blog-list', label: 'My Posts', icon: FileText },
 ];
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('blog-list'); // Default to dashboard
+  const [showNewPostModal, setShowNewPostModal] = useState(false);
+  const [newPostStep, setNewPostStep] = useState<'keywords' | 'strategy' | 'editor'>('keywords');
   const [editingPostTitle, setEditingPostTitle] = useState<string>('');
   const { buildBreadcrumb } = useBreadcrumb();
 
@@ -105,7 +109,7 @@ export default function HomePage() {
       case 'editor':
         return <ContentEditor />;
       case 'blog-list':
-        return <BlogList />;
+        return <DashboardView onCreateNewPost={() => setShowNewPostModal(true)} />;
       default:
         return <OverviewContent setActiveTab={setActiveTab} />;
     }
@@ -182,6 +186,18 @@ export default function HomePage() {
           {renderTabContent()}
         </div>
       </main>
+
+      {/* New Post Modal */}
+      {showNewPostModal && (
+        <NewPostModal 
+          step={newPostStep}
+          onStepChange={setNewPostStep}
+          onClose={() => {
+            setShowNewPostModal(false);
+            setNewPostStep('keywords');
+          }}
+        />
+      )}
     </div>
   );
 }
