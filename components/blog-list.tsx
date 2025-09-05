@@ -402,14 +402,14 @@ export default function BlogList() {
 
       {/* Edit Post Modal with Scrollable Content */}
       {showEditModal && editingModalPost && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-6xl w-full h-[95vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-hidden">
+          <div className="bg-white rounded-lg max-w-6xl w-full h-[95vh] flex flex-col relative">
             {/* Modal Header - Fixed */}
-            <div className="flex-shrink-0 p-6 border-b border-gray-200 bg-white">
+            <div className="flex-shrink-0 p-6 border-b border-gray-200 bg-white relative z-10">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Edit Post</h2>
-                  <p className="text-lg text-gray-600 mt-1">{editingModalPost.title}</p>
+                  <p className="text-lg text-gray-600 mt-1 truncate max-w-md">{editingModalPost.title}</p>
                 </div>
                 <Button 
                   variant="outline" 
@@ -423,9 +423,11 @@ export default function BlogList() {
               </div>
             </div>
             
-            {/* Modal Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <ContentEditor />
+            {/* Modal Content - Scrollable with proper height calculation */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden modal-content-scroll" style={{ maxHeight: 'calc(95vh - 120px)' }}>
+              <div className="p-6">
+                <ContentEditor />
+              </div>
             </div>
           </div>
         </div>
