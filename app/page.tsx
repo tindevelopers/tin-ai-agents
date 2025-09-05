@@ -55,6 +55,7 @@ export default function HomePage() {
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [newPostStep, setNewPostStep] = useState<'keywords' | 'strategy' | 'editor'>('keywords');
   const [editingPostTitle, setEditingPostTitle] = useState<string>('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const { buildBreadcrumb } = useBreadcrumb();
 
   // Listen for editing state changes from localStorage and events
@@ -79,7 +80,10 @@ export default function HomePage() {
 
     // Listen for localStorage changes and custom events
     const handleEditRequest = () => updateEditingState();
-    const handleCreateNewPost = () => setEditingPostTitle('');
+    const handleCreateNewPost = () => {
+      setEditingPostTitle('');
+      setHasUnsavedChanges(false);
+    };
     const handleNavigateToTab = (event: CustomEvent) => {
       const { tab } = event.detail;
       if (tab && tabs.find(t => t.id === tab)) {
@@ -87,16 +91,24 @@ export default function HomePage() {
       }
     };
     
+    // Handle unsaved changes events from content editor
+    const handleContentChanged = () => setHasUnsavedChanges(true);
+    const handleContentSaved = () => setHasUnsavedChanges(false);
+    
     window.addEventListener('postEditRequested', handleEditRequest);
     window.addEventListener('createNewPost', handleCreateNewPost);
     window.addEventListener('navigateToTab', handleNavigateToTab as EventListener);
     window.addEventListener('storage', updateEditingState);
+    window.addEventListener('contentChanged', handleContentChanged);
+    window.addEventListener('contentSaved', handleContentSaved);
 
     return () => {
       window.removeEventListener('postEditRequested', handleEditRequest);
       window.removeEventListener('createNewPost', handleCreateNewPost);
       window.removeEventListener('navigateToTab', handleNavigateToTab as EventListener);
       window.removeEventListener('storage', updateEditingState);
+      window.removeEventListener('contentChanged', handleContentChanged);
+      window.removeEventListener('contentSaved', handleContentSaved);
     };
   }, []);
 
@@ -175,7 +187,8 @@ export default function HomePage() {
                 activeTab,
                 editingPostTitle,
                 () => setActiveTab('dashboard'),
-                () => setActiveTab('my-posts')
+                () => setActiveTab('my-posts'),
+                hasUnsavedChanges
               )}
             />
           </div>

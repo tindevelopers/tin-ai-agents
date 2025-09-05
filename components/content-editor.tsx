@@ -26,6 +26,15 @@ export default function ContentEditor() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingPostSource, setEditingPostSource] = useState<any>(null);
 
+  // Helper functions to dispatch content change events
+  const dispatchContentChanged = () => {
+    window.dispatchEvent(new CustomEvent('contentChanged'));
+  };
+
+  const dispatchContentSaved = () => {
+    window.dispatchEvent(new CustomEvent('contentSaved'));
+  };
+
   const generateContent = async () => {
     if (!title.trim()) return;
     
@@ -134,6 +143,9 @@ export default function ContentEditor() {
         {
           loading: 'Saving your blog post...',
           success: (result) => {
+            // Dispatch content saved event
+            dispatchContentSaved();
+            
             // Clear edit data after successful save
             if (editingPostId) {
               clearEditPostData();
@@ -391,7 +403,10 @@ export default function ContentEditor() {
                 <Input
                   placeholder="Enter your blog post title..."
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    dispatchContentChanged();
+                  }}
                 />
               </div>
               <div>
@@ -401,7 +416,10 @@ export default function ContentEditor() {
                 <Input
                   placeholder="keyword1, keyword2, keyword3"
                   value={keywords}
-                  onChange={(e) => setKeywords(e.target.value)}
+                  onChange={(e) => {
+                    setKeywords(e.target.value);
+                    dispatchContentChanged();
+                  }}
                 />
               </div>
             </div>
@@ -413,7 +431,10 @@ export default function ContentEditor() {
               <Textarea
                 placeholder="Provide an outline or key points you want to cover..."
                 value={outline}
-                onChange={(e) => setOutline(e.target.value)}
+                onChange={(e) => {
+                  setOutline(e.target.value);
+                  dispatchContentChanged();
+                }}
                 className="min-h-[100px]"
               />
             </div>
@@ -522,7 +543,10 @@ export default function ContentEditor() {
               ) : (
                 <Textarea
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={(e) => {
+                    setContent(e.target.value);
+                    dispatchContentChanged();
+                  }}
                   className="min-h-[500px] font-mono text-sm"
                   placeholder="Generated content will appear here..."
                 />

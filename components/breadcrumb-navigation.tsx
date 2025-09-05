@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ChevronRight, Home, PenTool, FileText, Sparkles, Plus, CheckCircle, Edit3 } from 'lucide-react';
+import { ChevronRight, Home, PenTool, FileText, Sparkles, Plus, CheckCircle, Edit3, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BreadcrumbItem {
@@ -9,6 +9,7 @@ interface BreadcrumbItem {
   onClick?: () => void;
   icon?: React.ComponentType<{ className?: string }>;
   isActive?: boolean;
+  hasUnsavedChanges?: boolean;
 }
 
 interface BreadcrumbNavigationProps {
@@ -40,6 +41,12 @@ export default function BreadcrumbNavigation({ items, className = '' }: Breadcru
               >
                 {Icon && <Icon className="w-4 h-4 mr-1" />}
                 {item.label}
+                {item.hasUnsavedChanges && (
+                  <div className="flex items-center ml-2">
+                    <AlertCircle className="w-3 h-3 text-orange-500 mr-1" />
+                    <span className="text-orange-600 text-xs font-semibold">unsaved</span>
+                  </div>
+                )}
               </Button>
             ) : (
               <span className={`flex items-center gap-1 font-medium ${
@@ -47,6 +54,12 @@ export default function BreadcrumbNavigation({ items, className = '' }: Breadcru
               }`}>
                 {Icon && <Icon className="w-4 h-4" />}
                 {item.label}
+                {item.hasUnsavedChanges && (
+                  <div className="flex items-center ml-2">
+                    <AlertCircle className="w-3 h-3 text-orange-500 mr-1" />
+                    <span className="text-orange-600 text-xs font-semibold">unsaved</span>
+                  </div>
+                )}
               </span>
             )}
             
@@ -66,7 +79,8 @@ export function useBreadcrumb() {
     currentTab: string,
     editingPostTitle?: string,
     onNavigateHome?: () => void,
-    onNavigateToPosts?: () => void
+    onNavigateToPosts?: () => void,
+    hasUnsavedChanges?: boolean
   ): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [
       {
@@ -93,12 +107,14 @@ export function useBreadcrumb() {
             label: `Editing: "${editingPostTitle}"`,
             icon: PenTool,
             isActive: true,
+            hasUnsavedChanges: hasUnsavedChanges,
           });
         } else {
           items.push({
             label: 'Create Post',
             icon: Plus,
             isActive: true,
+            hasUnsavedChanges: hasUnsavedChanges,
           });
         }
         break;
