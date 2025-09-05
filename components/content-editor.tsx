@@ -23,6 +23,8 @@ export default function ContentEditor() {
   const [showPreview, setShowPreview] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [contentIdeaSource, setContentIdeaSource] = useState<any>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingPostSource, setEditingPostSource] = useState<any>(null);
 
   const generateContent = async () => {
     if (!title.trim()) return;
@@ -108,6 +110,7 @@ export default function ContentEditor() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              id: editingPostId, // Include ID if editing existing post
               title: title.trim(),
               content: content.trim(),
               keywords: keywordArray,
@@ -131,13 +134,20 @@ export default function ContentEditor() {
         {
           loading: 'Saving your blog post...',
           success: (result) => {
+            // Clear edit data after successful save
+            if (editingPostId) {
+              clearEditPostData();
+            }
+            
             // Show success message with action to view saved posts
             setTimeout(() => {
               toast.success('✨ Tip: Check "My Posts" tab to view your saved content!', {
                 duration: 4000
               });
             }, 2000);
-            return `Blog post saved successfully! ID: ${result.blogPost?.id?.substring(0, 8)}...`;
+            
+            const action = editingPostId ? 'updated' : 'saved';
+            return `Blog post ${action} successfully! ID: ${result.blogPost?.id?.substring(0, 8)}...`;
           },
           error: (error) => {
             console.error('❌ Save error details:', error);
@@ -166,10 +176,32 @@ export default function ContentEditor() {
     localStorage.removeItem('contentIdeaData');
   };
 
-  // Check for pre-populated content idea data on component mount
+  const clearEditPostData = () => {
+    setEditingPostSource(null);
+    setEditingPostId(null);
+    localStorage.removeItem('editPostData');
+  };
+
+  // Check for pre-populated data on component mount
   useEffect(() => {
     const contentIdeaData = localStorage.getItem('contentIdeaData');
-    if (contentIdeaData) {
+    const editPostData = localStorage.getItem('editPostData');
+    
+    if (editPostData) {
+      try {
+        const postData = JSON.parse(editPostData);
+        setEditingPostId(postData.id);
+        setTitle(postData.title || '');
+        setKeywords(Array.isArray(postData.keywords) ? postData.keywords.join(', ') : '');
+        setContent(postData.content || '');
+        setEditingPostSource(postData);
+        
+        toast.success('Blog post loaded for editing!');
+      } catch (error) {
+        console.error('Error parsing edit post data:', error);
+        localStorage.removeItem('editPostData');
+      }
+    } else if (contentIdeaData) {
       try {
         const ideaData = JSON.parse(contentIdeaData);
         setTitle(ideaData.title || '');
@@ -202,6 +234,31 @@ export default function ContentEditor() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {editingPostSource && (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Edit className="w-4 h-4 text-orange-600" />
+                    <div>
+                      <p className="text-sm font-medium text-orange-900">
+                        Editing existing post: "{editingPostSource.title}"
+                      </p>
+                      <p className="text-xs text-orange-700">
+                        Status: {editingPostSource.status} • Words: {editingPostSource.content?.split(' ')?.length || 0}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearEditPostData}
+                    className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
             {contentIdeaSource && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -349,7 +406,7 @@ export default function ContentEditor() {
                   </Button>
                   <Button size="sm" onClick={saveContent}>
                     <Save className="w-4 h-4 mr-1" />
-                    Save
+                    {editingPostId ? 'Update' : 'Save'}
                   </Button>
                 </div>
               </div>

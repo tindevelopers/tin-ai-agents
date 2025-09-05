@@ -8,10 +8,13 @@ import { Button } from '@/components/ui/button';
 import { FileText, Calendar, Tag, Eye, Edit, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
+import { toast } from 'sonner';
 
 export default function BlogList() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     fetchBlogPosts();
@@ -53,6 +56,57 @@ export default function BlogList() {
     return status === 'published' 
       ? 'bg-green-100 text-green-800' 
       : 'bg-yellow-100 text-yellow-800';
+  };
+
+  const viewPost = (post: BlogPost) => {
+    setSelectedPost(post);
+    setShowPreview(true);
+  };
+
+  const editPost = (post: BlogPost) => {
+    // Save post data to localStorage for the content editor
+    localStorage.setItem('editPostData', JSON.stringify({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      keywords: post.keywords,
+      status: post.status
+    }));
+    
+    toast.success('Post loaded for editing! Switch to "Content Editor" tab.');
+  };
+
+  const deletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this blog post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/blog/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete post');
+      }
+
+      if (result.success) {
+        toast.success('Blog post deleted successfully!');
+        setBlogPosts(prev => prev.filter(post => post.id !== postId));
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error(`Failed to delete post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const closePreview = () => {
+    setShowPreview(false);
+    setSelectedPost(null);
   };
 
   if (loading) {
@@ -140,13 +194,29 @@ export default function BlogList() {
                         {post.status}
                       </Badge>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => viewPost(post)}
+                          title="View post"
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => editPost(post)}
+                          title="Edit post"
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => deletePost(post.id)}
+                          title="Delete post"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -175,6 +245,57 @@ export default function BlogList() {
               </Card>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* Blog Post Preview Modal */}
+      {showPreview && selectedPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedPost.title}</h2>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {formatDate(selectedPost.updatedAt.toString())}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <FileText className="w-4 h-4" />
+                      {selectedPost.content?.split(' ')?.length || 0} words
+                    </div>
+                    <Badge className={getStatusColor(selectedPost.status)}>
+                      {selectedPost.status}
+                    </Badge>
+                  </div>
+                </div>
+                <Button variant="outline" onClick={closePreview}>
+                  Close
+                </Button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              <div className="prose max-w-none">
+                <div className="whitespace-pre-wrap">{selectedPost.content}</div>
+              </div>
+              {selectedPost.keywords && selectedPost.keywords.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Tag className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Keywords:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPost.keywords.map((keyword, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
