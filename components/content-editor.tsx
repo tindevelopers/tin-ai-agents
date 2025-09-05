@@ -191,6 +191,29 @@ export default function ContentEditor() {
     toast.success('✨ Edit mode cleared - ready for new content!');
   };
 
+  const clearAllData = () => {
+    console.log('🧹 Clearing all editor data...');
+    // Clear all form fields
+    setTitle('');
+    setKeywords('');
+    setOutline('');
+    setTone('professional');
+    setWordCount('800-1200');
+    setContent('');
+    
+    // Clear state variables
+    setEditingPostId(null);
+    setEditingPostSource(null);
+    setContentIdeaSource(null);
+    setShowPreview(false);
+    setIsGenerating(false);
+    setGenerationProgress(0);
+    
+    // Clear localStorage
+    localStorage.removeItem('editPostData');
+    localStorage.removeItem('contentIdeaData');
+  };
+
   const loadEditPostData = (postData: any) => {
     try {
       console.log('📖 Loading edit post data:', postData);
@@ -254,11 +277,20 @@ export default function ContentEditor() {
       loadEditPostData(event.detail);
     };
 
+    // Listen for create new post requests
+    const handleCreateNewPost = () => {
+      console.log('🆕 Received create new post request - clearing editor');
+      clearAllData();
+      toast.success('✨ Editor cleared! Ready to create a new post.');
+    };
+
     window.addEventListener('postEditRequested', handleEditRequest as EventListener);
+    window.addEventListener('createNewPost', handleCreateNewPost as EventListener);
 
     // Cleanup
     return () => {
       window.removeEventListener('postEditRequested', handleEditRequest as EventListener);
+      window.removeEventListener('createNewPost', handleCreateNewPost as EventListener);
     };
   }, []);
 

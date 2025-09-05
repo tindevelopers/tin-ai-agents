@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Tag, Eye, Edit, Trash2 } from 'lucide-react';
+import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
@@ -122,6 +122,18 @@ export default function BlogList() {
     setSelectedPost(null);
   };
 
+  const createNewPost = () => {
+    // Clear any existing edit data
+    localStorage.removeItem('editPostData');
+    
+    // Dispatch event to clear content editor
+    window.dispatchEvent(new CustomEvent('createNewPost'));
+    
+    toast.success('🚀 Ready to create a new post! Switch to "Content Editor" tab to start writing.', {
+      duration: 4000,
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -148,14 +160,23 @@ export default function BlogList() {
                   Manage your saved blog posts and drafts
                 </CardDescription>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={fetchBlogPosts}
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Refresh'}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={createNewPost}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Post
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={fetchBlogPosts}
+                  disabled={loading}
+                >
+                  {loading ? 'Loading...' : 'Refresh'}
+                </Button>
+              </div>
             </div>
           </CardHeader>
         </Card>
@@ -166,9 +187,16 @@ export default function BlogList() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="w-16 h-16 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No blog posts yet</h3>
-            <p className="text-gray-600 text-center">
-              Start by creating content using the Content Editor to see your posts here.
+            <p className="text-gray-600 text-center mb-6">
+              Start by creating your first blog post to see it appear here.
             </p>
+            <Button 
+              onClick={createNewPost}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Your First Post
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -180,59 +208,66 @@ export default function BlogList() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">{post.title}</CardTitle>
-                      <CardDescription className="mb-3">
+              <Card className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <CardTitle className="text-xl font-bold text-gray-900 leading-tight pr-4">
+                          {post.title}
+                        </CardTitle>
+                        <Badge className={`${getStatusColor(post.status)} font-medium px-3 py-1 text-xs uppercase tracking-wide`}>
+                          {post.status}
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
                         {post.content ? 
-                          `${post.content.substring(0, 150)}...` : 
+                          `${post.content.substring(0, 180)}...` : 
                           'No content preview available'
                         }
                       </CardDescription>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-6 text-sm text-gray-500">
+                        <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          {formatDate(post.updatedAt.toString())}
+                          <span>Updated {formatDate(post.updatedAt.toString())}</span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4" />
-                          {post.content?.split(' ')?.length || 0} words
+                          <span>{post.content?.split(' ')?.length || 0} words</span>
+                        </div>
+                        <div className="text-gray-400">
+                          • ~{Math.ceil((post.content?.split(' ')?.length || 0) / 200)} min read
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-3">
-                      <Badge className={getStatusColor(post.status)}>
-                        {post.status}
-                      </Badge>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => viewPost(post)}
-                          title="View post"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => editPost(post)}
-                          title="Edit post"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => deletePost(post.id)}
-                          title="Delete post"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <div className="flex flex-col gap-2 min-w-[150px]">
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => editPost(post)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Continue Writing
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => viewPost(post)}
+                        className="w-full hover:bg-gray-50"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Post
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        onClick={() => deletePost(post.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
