@@ -28,10 +28,6 @@ const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr
 const ContentStrategyGenerator = dynamic(() => import('@/components/content-strategy'), { ssr: false });
 const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
 
-// Dynamic import for framer motion to prevent hydration issues
-const MotionDiv = dynamic(() => import('framer-motion').then((mod) => mod.motion.div), { ssr: false });
-const AnimatePresence = dynamic(() => import('framer-motion').then((mod) => mod.AnimatePresence), { ssr: false });
-
 type TabType = 'overview' | 'keywords' | 'clustering' | 'ideas' | 'topics' | 'strategy' | 'editor' | 'blog-list';
 
 const tabs = [
@@ -120,17 +116,9 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AnimatePresence mode="wait">
-          <MotionDiv
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {renderTabContent()}
-          </MotionDiv>
-        </AnimatePresence>
+        <div>
+          {renderTabContent()}
+        </div>
       </main>
     </div>
   );
@@ -185,11 +173,7 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
   return (
     <div className="space-y-12">
       {/* Hero Section */}
-        <MotionDiv
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-6"
-        >
+        <div className="text-center space-y-6">
         <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
           <Sparkles className="w-4 h-4" />
           AI-Powered Content Creation
@@ -219,19 +203,15 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
             <Search className="w-5 h-5 ml-2" />
           </Button>
         </div>
-        </MotionDiv>
+        </div>
 
       {/* Features Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {features.map((feature, index) => {
           const Icon = feature.icon;
           return (
-            <MotionDiv
+            <div
               key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02, translateY: -4 }}
               className="group cursor-pointer"
               onClick={() => setActiveTab(feature.tab)}
             >
@@ -254,18 +234,13 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
                   </div>
                 </CardContent>
               </Card>
-            </MotionDiv>
+            </div>
           );
         })}
       </div>
 
       {/* Stats Section */}
-      <MotionDiv
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white"
-      >
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
           <div>
             <div className="text-3xl font-bold mb-2">AI-Powered</div>
@@ -284,14 +259,10 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
             <div className="text-blue-200">Workflow</div>
           </div>
         </div>
-      </MotionDiv>
+      </div>
 
       {/* Getting Started */}
-      <MotionDiv
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-        >
+      <div>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -334,7 +305,7 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
             </div>
           </CardContent>
         </Card>
-        </MotionDiv>
+        </div>
       
     </div>
   );
