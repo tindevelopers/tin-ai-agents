@@ -27,7 +27,7 @@ import {
 
 // Dynamic imports for new primary navigation structure
 const DashboardView = dynamic(() => import('@/components/dashboard-view'), { ssr: false });
-const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
+const CreatePostWorkflow = dynamic(() => import('@/components/create-post-workflow'), { ssr: false });
 const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
 const PublishedPosts = dynamic(() => import('@/components/published-posts'), { ssr: false });
 const DraftPosts = dynamic(() => import('@/components/draft-posts'), { ssr: false });
@@ -117,7 +117,7 @@ export default function HomePage() {
       case 'dashboard':
         return <DashboardView onCreateNewPost={() => setActiveTab('create-post')} />;
       case 'create-post':
-        return <ContentEditor />;
+        return <CreatePostWorkflow />;
       case 'my-posts':
         return <BlogList />;
       case 'published':

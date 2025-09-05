@@ -15,10 +15,12 @@ import { toast } from 'sonner';
 export default function ContentIdeas() {
   const [savedKeywordSets, setSavedKeywordSets] = useState<KeywordCluster[]>([]);
   const [selectedKeywordSet, setSelectedKeywordSet] = useState<string>('');
+  const [workflowKeywords, setWorkflowKeywords] = useState<string[]>([]);
   const [industry, setIndustry] = useState('');
   const [audience, setAudience] = useState('');
   const [ideas, setIdeas] = useState<ContentIdea[]>([]);
   const [loading, setLoading] = useState(false);
+  const [useWorkflowKeywords, setUseWorkflowKeywords] = useState(false);
 
   // Load saved keyword sets on component mount
   const loadSavedKeywordSets = async () => {
@@ -32,14 +34,22 @@ export default function ContentIdeas() {
   };
 
   const generateIdeas = async () => {
-    if (!selectedKeywordSet) {
-      toast.error('Please select a keyword set first');
-      return;
-    }
+    let keywordsToUse: string[] = [];
+    let sourceName = '';
     
-    const selectedSet = savedKeywordSets.find(set => set.id === selectedKeywordSet);
-    if (!selectedSet || !selectedSet.keywords.length) {
-      toast.error('Selected keyword set is empty');
+    if (useWorkflowKeywords && workflowKeywords.length > 0) {
+      keywordsToUse = workflowKeywords;
+      sourceName = 'workflow keywords';
+    } else if (selectedKeywordSet) {
+      const selectedSet = savedKeywordSets.find(set => set.id === selectedKeywordSet);
+      if (!selectedSet || !selectedSet.keywords.length) {
+        toast.error('Selected keyword set is empty');
+        return;
+      }
+      keywordsToUse = selectedSet.keywords;
+      sourceName = selectedSet.name;
+    } else {
+      toast.error('Please select a keyword set or use workflow keywords');
       return;
     }
 
@@ -49,7 +59,7 @@ export default function ContentIdeas() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          keywords: selectedSet.keywords, 
+          keywords: keywordsToUse, 
           industry: industry || 'general', 
           audience: audience || 'general audience' 
         }),
@@ -61,7 +71,7 @@ export default function ContentIdeas() {
         return;
       }
       setIdeas(data.ideas || []);
-      toast.success(`Generated ${data.ideas?.length || 0} content ideas from "${selectedSet.name}"`);
+      toast.success(`Generated ${data.ideas?.length || 0} content ideas from ${sourceName}`);
     } catch (error) {
       console.error('Error generating content ideas:', error);
       toast.error('Failed to generate content ideas');
@@ -72,23 +82,41 @@ export default function ContentIdeas() {
 
   const createBlogFromIdea = (idea: ContentIdea) => {
     // Store the content idea data for the content editor
-    localStorage.setItem('contentIdeaData', JSON.stringify({
+    const ideaData = {
       title: idea.title,
       description: idea.description,
       keywords: idea.keywords || [],
       category: idea.category,
       from: 'content-idea'
+    };
+    
+    localStorage.setItem('contentIdeaData', JSON.stringify(ideaData));
+    
+    // Dispatch event for workflow
+    window.dispatchEvent(new CustomEvent('contentIdeaSelected', { 
+      detail: { idea: ideaData } 
     }));
     
-    // Navigate to content editor tab
-    const contentEditorTab = document.querySelector('[data-tab="editor"]') as HTMLElement;
-    contentEditorTab?.click();
-    
-    toast.success('Content idea loaded in editor!');
+    toast.success('Content idea selected for your blog post!');
   };
 
   useEffect(() => {
     loadSavedKeywordSets();
+    
+    // Check for keywords from workflow
+    const workflowKeywordsData = localStorage.getItem('selectedKeywordsForIdeas');
+    if (workflowKeywordsData) {
+      try {
+        const keywords = JSON.parse(workflowKeywordsData);
+        setWorkflowKeywords(keywords);
+        setUseWorkflowKeywords(true);
+        toast.info(`Using ${keywords.length} keywords from research step`);
+        // Clear the data after reading
+        localStorage.removeItem('selectedKeywordsForIdeas');
+      } catch (error) {
+        console.error('Error parsing workflow keywords:', error);
+      }
+    }
   }, []);
 
   const selectedSet = savedKeywordSets.find(set => set.id === selectedKeywordSet);
@@ -125,100 +153,143 @@ export default function ContentIdeas() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {savedKeywordSets.length === 0 ? (
-              <div className="text-center py-8">
-                <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No keyword sets found</h3>
-                <p className="text-gray-600 mb-4">You need saved keyword sets to generate content ideas</p>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Follow these steps:</p>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p>1. Go to <strong>Keyword Research</strong> tab</p>
-                    <p>2. Search and save keyword sets</p>
-                    <p>3. Return here to generate content ideas</p>
-                  </div>
+            {/* Workflow Keywords Section */}
+            {useWorkflowKeywords && workflowKeywords.length > 0 && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-blue-600" />
+                  Using Keywords from Research Step ({workflowKeywords.length})
+                </h4>
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {workflowKeywords.slice(0, 12).map((keyword) => (
+                    <Badge key={keyword} variant="outline" className="text-xs bg-blue-100 text-blue-800">
+                      {keyword}
+                    </Badge>
+                  ))}
+                  {workflowKeywords.length > 12 && (
+                    <Badge variant="secondary" className="text-xs">
+                      +{workflowKeywords.length - 12} more
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-blue-700">
+                    Ready to generate content ideas with these keywords
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setUseWorkflowKeywords(false);
+                      setWorkflowKeywords([]);
+                    }}
+                    className="text-xs"
+                  >
+                    Use Saved Sets Instead
+                  </Button>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* Saved Keyword Sets Section */}
+            {(!useWorkflowKeywords || workflowKeywords.length === 0) && (
               <>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Select Keyword Set *
-                  </label>
-                  <Select value={selectedKeywordSet} onValueChange={setSelectedKeywordSet}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a saved keyword set..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {savedKeywordSets.map((set) => (
-                        <SelectItem key={set.id} value={set.id}>
-                          {set.name} ({set.keywords.length} keywords)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedSet && (
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                      <Target className="w-4 h-4 text-blue-600" />
-                      Selected: {selectedSet.name}
-                    </h4>
-                    {selectedSet.description && (
-                      <p className="text-sm text-gray-600 mb-3">{selectedSet.description}</p>
-                    )}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {selectedSet.keywords.slice(0, 12).map((keyword) => (
-                        <Badge key={keyword} variant="outline" className="text-xs">
-                          {keyword}
-                        </Badge>
-                      ))}
-                      {selectedSet.keywords.length > 12 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{selectedSet.keywords.length - 12} more
-                        </Badge>
-                      )}
+                {savedKeywordSets.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No keyword sets found</h3>
+                    <p className="text-gray-600 mb-4">You need saved keyword sets to generate content ideas</p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-500">Follow these steps:</p>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>1. Go back to <strong>keyword research</strong> step</p>
+                        <p>2. Search and select keywords</p>
+                        <p>3. Or use previously saved keyword sets below</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      Total keywords: {selectedSet.keywords.length}
-                    </p>
                   </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Select Keyword Set *
+                      </label>
+                      <Select value={selectedKeywordSet || ""} onValueChange={setSelectedKeywordSet}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a saved keyword set..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {savedKeywordSets.map((set) => (
+                            <SelectItem key={set.id || set.name} value={set.id || set.name}>
+                              {set.name} ({set.keywords.length} keywords)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedSet && (
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                          <Target className="w-4 h-4 text-blue-600" />
+                          Selected: {selectedSet.name}
+                        </h4>
+                        {selectedSet.description && (
+                          <p className="text-sm text-gray-600 mb-3">{selectedSet.description}</p>
+                        )}
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {selectedSet.keywords.slice(0, 12).map((keyword) => (
+                            <Badge key={keyword} variant="outline" className="text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                          {selectedSet.keywords.length > 12 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{selectedSet.keywords.length - 12} more
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Total keywords: {selectedSet.keywords.length}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">
-                      Industry/Niche
-                    </label>
-                    <Input
-                      placeholder="e.g., technology, health, finance"
-                      value={industry}
-                      onChange={(e) => setIndustry(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">
-                      Target Audience
-                    </label>
-                    <Input
-                      placeholder="e.g., small business owners, beginners"
-                      value={audience}
-                      onChange={(e) => setAudience(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={generateIdeas}
-                  disabled={loading || !selectedKeywordSet}
-                  className="w-full"
-                >
-                  {loading ? 'Generating Ideas...' : 'Generate Content Ideas'}
-                  <Sparkles className="w-4 h-4 ml-2" />
-                </Button>
               </>
             )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Industry/Niche
+                </label>
+                <Input
+                  placeholder="e.g., technology, health, finance"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Target Audience
+                </label>
+                <Input
+                  placeholder="e.g., small business owners, beginners"
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <Button 
+              onClick={generateIdeas}
+              disabled={loading || (!useWorkflowKeywords && !selectedKeywordSet)}
+              className="w-full"
+            >
+              {loading ? 'Generating Ideas...' : 'Generate Content Ideas'}
+              <Sparkles className="w-4 h-4 ml-2" />
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
@@ -293,10 +364,10 @@ export default function ContentIdeas() {
                         <Button
                           size="sm"
                           onClick={() => createBlogFromIdea(idea)}
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                         >
                           <PenTool className="w-3 h-3" />
-                          Generate Blog
+                          Select This Idea
                         </Button>
                       </div>
                     </div>

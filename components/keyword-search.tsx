@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, TrendingUp, Target, BarChart3, Save, Bookmark, Trash2 } from 'lucide-react';
+import { Search, TrendingUp, Target, BarChart3, Save, Bookmark, Trash2, PenTool } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { KeywordSuggestion, KeywordCluster } from '@/lib/types';
 import { toast } from 'sonner';
@@ -312,13 +312,27 @@ export default function KeywordSearch() {
                         <span className="text-sm font-medium text-gray-700">
                           Selected Keywords ({selectedKeywords.length})
                         </span>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setSelectedKeywords([])}
-                        >
-                          Clear All
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setSelectedKeywords([])}
+                          >
+                            Clear All
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => {
+                              window.dispatchEvent(new CustomEvent('keywordsSelectedForPost', { 
+                                detail: { keywords: selectedKeywords } 
+                              }));
+                              toast.success(`Selected ${selectedKeywords.length} keywords for your blog post!`);
+                            }}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                          >
+                            Use for Post
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {selectedKeywords.map((keyword) => (
@@ -390,6 +404,19 @@ export default function KeywordSearch() {
                             >
                               <Target className="w-3 h-3" />
                               Load ({cluster.keywords.length})
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                window.dispatchEvent(new CustomEvent('keywordsSelectedForPost', { 
+                                  detail: { keywords: cluster.keywords } 
+                                }));
+                                toast.success(`Using ${cluster.keywords.length} keywords from "${cluster.name}" for your blog post!`);
+                              }}
+                              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex items-center gap-1"
+                            >
+                              <PenTool className="w-3 h-3" />
+                              Use for Post
                             </Button>
                           </div>
                         </div>
