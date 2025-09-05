@@ -17,35 +17,41 @@ import {
   FileText,
   Sparkles,
   Target,
-  TrendingUp
+  TrendingUp,
+  Home,
+  Plus,
+  Archive,
+  CheckCircle,
+  Edit3
 } from 'lucide-react';
 
-// Dynamic imports for components with animations to prevent hydration issues
+// Dynamic imports for new primary navigation structure
+const DashboardView = dynamic(() => import('@/components/dashboard-view'), { ssr: false });
+const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
+const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
+const PublishedPosts = dynamic(() => import('@/components/published-posts'), { ssr: false });
+const DraftPosts = dynamic(() => import('@/components/draft-posts'), { ssr: false });
+
+// Legacy feature-based components (available via advanced mode if needed)
 const KeywordSearch = dynamic(() => import('@/components/keyword-search'), { ssr: false });
 const KeywordClustering = dynamic(() => import('@/components/keyword-clustering'), { ssr: false });
 const ContentIdeas = dynamic(() => import('@/components/content-ideas'), { ssr: false });
 const TopicSuggestions = dynamic(() => import('@/components/topic-suggestions'), { ssr: false });
-const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
 const ContentStrategyGenerator = dynamic(() => import('@/components/content-strategy'), { ssr: false });
-const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
-const DashboardView = dynamic(() => import('@/components/dashboard-view'), { ssr: false });
 const NewPostModal = dynamic(() => import('@/components/new-post-modal'), { ssr: false });
 
-type TabType = 'overview' | 'keywords' | 'clustering' | 'ideas' | 'topics' | 'strategy' | 'editor' | 'blog-list';
+type TabType = 'dashboard' | 'create-post' | 'my-posts' | 'published' | 'drafts';
 
 const tabs = [
-  { id: 'blog-list', label: 'Dashboard', icon: FileText },
-  { id: 'overview', label: 'Overview', icon: Sparkles },
-  { id: 'keywords', label: 'Keyword Research', icon: Search },
-  { id: 'clustering', label: 'Clustering', icon: Layers },
-  { id: 'ideas', label: 'Content Ideas', icon: Lightbulb },
-  { id: 'topics', label: 'Topic Suggestions', icon: BookOpen },
-  { id: 'strategy', label: 'Strategy', icon: Settings },
-  { id: 'editor', label: 'Content Editor', icon: PenTool },
+  { id: 'dashboard', label: 'Dashboard', icon: Home },
+  { id: 'create-post', label: 'Create Post', icon: Plus },
+  { id: 'my-posts', label: 'My Posts', icon: FileText },
+  { id: 'published', label: 'Published', icon: CheckCircle },
+  { id: 'drafts', label: 'Drafts', icon: Edit3 },
 ];
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabType>('blog-list'); // Default to dashboard
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard'); // Default to dashboard
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [newPostStep, setNewPostStep] = useState<'keywords' | 'strategy' | 'editor'>('keywords');
   const [editingPostTitle, setEditingPostTitle] = useState<string>('');
@@ -96,22 +102,18 @@ export default function HomePage() {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'keywords':
-        return <KeywordSearch />;
-      case 'clustering':
-        return <KeywordClustering />;
-      case 'ideas':
-        return <ContentIdeas />;
-      case 'topics':
-        return <TopicSuggestions />;
-      case 'strategy':
-        return <ContentStrategyGenerator />;
-      case 'editor':
+      case 'dashboard':
+        return <DashboardView onCreateNewPost={() => setActiveTab('create-post')} />;
+      case 'create-post':
         return <ContentEditor />;
-      case 'blog-list':
-        return <DashboardView onCreateNewPost={() => setShowNewPostModal(true)} />;
+      case 'my-posts':
+        return <BlogList />;
+      case 'published':
+        return <PublishedPosts />;
+      case 'drafts':
+        return <DraftPosts />;
       default:
-        return <OverviewContent setActiveTab={setActiveTab} />;
+        return <DashboardView onCreateNewPost={() => setActiveTab('create-post')} />;
     }
   };
 
@@ -165,15 +167,15 @@ export default function HomePage() {
       </nav>
 
       {/* Breadcrumb Navigation */}
-      {activeTab !== 'overview' && (
+      {activeTab !== 'dashboard' && (
         <div className="bg-gray-50 border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <BreadcrumbNavigation
               items={buildBreadcrumb(
                 activeTab,
                 editingPostTitle,
-                () => setActiveTab('overview'),
-                () => setActiveTab('blog-list')
+                () => setActiveTab('dashboard'),
+                () => setActiveTab('my-posts')
               )}
             />
           </div>
@@ -205,46 +207,32 @@ export default function HomePage() {
 function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => void }) {
   const features = [
     {
-      icon: Search,
-      title: 'Keyword Research',
-      description: 'Discover high-value keywords with search volume and difficulty analysis',
+      icon: Plus,
+      title: 'Create New Post',
+      description: 'Start writing a new blog post with AI assistance and advanced tools',
+      color: 'bg-green-500',
+      tab: 'create-post' as TabType,
+    },
+    {
+      icon: FileText,
+      title: 'Manage Posts',
+      description: 'View, edit, and organize all your blog posts in one place',
       color: 'bg-blue-500',
-      tab: 'keywords' as TabType,
+      tab: 'my-posts' as TabType,
     },
     {
-      icon: Layers,
-      title: 'Keyword Clustering',
-      description: 'Group keywords into semantic clusters for better content organization',
-      color: 'bg-purple-500',
-      tab: 'clustering' as TabType,
+      icon: CheckCircle,
+      title: 'Published Content',
+      description: 'Review and manage your live, published blog posts',
+      color: 'bg-green-600',
+      tab: 'published' as TabType,
     },
     {
-      icon: Lightbulb,
-      title: 'Content Ideas',
-      description: 'Generate creative content ideas based on your target keywords',
+      icon: Edit3,
+      title: 'Draft Posts',
+      description: 'Continue working on your draft posts and publish when ready',
       color: 'bg-yellow-500',
-      tab: 'ideas' as TabType,
-    },
-    {
-      icon: BookOpen,
-      title: 'Topic Suggestions',
-      description: 'Get specific topic ideas with unique angles for your content',
-      color: 'bg-indigo-500',
-      tab: 'topics' as TabType,
-    },
-    {
-      icon: Settings,
-      title: 'Content Strategy',
-      description: 'Create comprehensive content strategies with SEO recommendations',
-      color: 'bg-blue-600',
-      tab: 'strategy' as TabType,
-    },
-    {
-      icon: PenTool,
-      title: 'AI Content Editor',
-      description: 'Generate and edit high-quality blog content with AI assistance',
-      color: 'bg-emerald-500',
-      tab: 'editor' as TabType,
+      tab: 'drafts' as TabType,
     },
   ];
 
@@ -265,7 +253,7 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
         <div className="flex items-center justify-center gap-4">
           <Button 
             size="lg" 
-            onClick={() => setActiveTab('editor')}
+            onClick={() => setActiveTab('create-post')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
           >
             Start Writing
@@ -274,11 +262,11 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
           <Button 
             variant="outline" 
             size="lg"
-            onClick={() => setActiveTab('keywords')}
+            onClick={() => setActiveTab('my-posts')}
             className="px-8 py-3 text-lg"
           >
-            Keyword Research
-            <Search className="w-5 h-5 ml-2" />
+            View My Posts
+            <FileText className="w-5 h-5 ml-2" />
           </Button>
         </div>
         </div>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ChevronRight, Home, PenTool, FileText, Sparkles } from 'lucide-react';
+import { ChevronRight, Home, PenTool, FileText, Sparkles, Plus, CheckCircle, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BreadcrumbItem {
@@ -76,13 +76,13 @@ export function useBreadcrumb() {
       }
     ];
 
-    // Add tab-specific breadcrumb
+    // Add tab-specific breadcrumb for new navigation structure
     switch (currentTab) {
-      case 'overview':
+      case 'dashboard':
         items[0].isActive = true;
         break;
         
-      case 'editor':
+      case 'create-post':
         if (editingPostTitle) {
           items.push({
             label: 'My Posts',
@@ -96,14 +96,14 @@ export function useBreadcrumb() {
           });
         } else {
           items.push({
-            label: 'Content Editor',
-            icon: PenTool,
+            label: 'Create Post',
+            icon: Plus,
             isActive: true,
           });
         }
         break;
         
-      case 'blog-list':
+      case 'my-posts':
         items.push({
           label: 'My Posts',
           icon: FileText,
@@ -111,42 +111,18 @@ export function useBreadcrumb() {
         });
         break;
         
-      case 'keywords':
+      case 'published':
         items.push({
-          label: 'Keyword Research',
-          icon: Sparkles,
+          label: 'Published',
+          icon: CheckCircle,
           isActive: true,
         });
         break;
         
-      case 'clustering':
+      case 'drafts':
         items.push({
-          label: 'Keyword Clustering',
-          icon: Sparkles,
-          isActive: true,
-        });
-        break;
-        
-      case 'ideas':
-        items.push({
-          label: 'Content Ideas',
-          icon: Sparkles,
-          isActive: true,
-        });
-        break;
-        
-      case 'topics':
-        items.push({
-          label: 'Topic Suggestions',
-          icon: Sparkles,
-          isActive: true,
-        });
-        break;
-        
-      case 'strategy':
-        items.push({
-          label: 'Content Strategy',
-          icon: Sparkles,
+          label: 'Drafts',
+          icon: Edit3,
           isActive: true,
         });
         break;
