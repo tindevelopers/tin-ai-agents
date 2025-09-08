@@ -312,38 +312,43 @@ export default function ContentEditor() {
     };
   }, []);
 
+  // Determine if we're in editing mode (skip generation UI)
+  const isEditingMode = editingPostSource && editingPostId && content.trim();
+  
   return (
     <div className="space-y-6 w-full">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full"
-      >
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <PenTool className="w-5 h-5 text-emerald-600" />
-                  AI Content Editor
-                </CardTitle>
-                <CardDescription>
-                  Generate and edit high-quality blog content with AI assistance
-                </CardDescription>
+      {/* Only show generation interface for NEW content creation */}
+      {!isEditingMode && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full"
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <PenTool className="w-5 h-5 text-emerald-600" />
+                    AI Content Generator
+                  </CardTitle>
+                  <CardDescription>
+                    Generate high-quality blog content with AI assistance
+                  </CardDescription>
+                </div>
+                {contentIdeaSource && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={clearContentIdeaData}
+                    className="ml-4"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Clear Idea
+                  </Button>
+                )}
               </div>
-              {editingPostSource && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={navigateToPostsList}
-                  className="ml-4"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Posts
-                </Button>
-              )}
-            </div>
-          </CardHeader>
+            </CardHeader>
           <CardContent className="space-y-4">
             {editingPostSource && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
@@ -493,22 +498,112 @@ export default function ContentEditor() {
           </CardContent>
         </Card>
       </motion.div>
+      )}
 
-      {content && (
+      {/* Content Editor Section - Always show when editing, or when content exists */}
+      {(content || isEditingMode) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: isEditingMode ? 0 : 0.2 }}
           className="w-full"
         >
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Generated Content
-                </CardTitle>
-                <div className="flex items-center gap-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Edit className="w-5 h-5 text-blue-600" />
+                    {isEditingMode ? 'Edit Content' : 'Generated Content'}
+                  </CardTitle>
+                  {isEditingMode && (
+                    <CardDescription className="text-blue-600 font-medium">
+                      ✏️ Editing: {title || 'Untitled Post'}
+                    </CardDescription>
+                  )}
+                </div>
+                {isEditingMode && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Navigate back to drafts tab
+                      window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'drafts' } }));
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Drafts
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Quick editing fields for existing posts */}
+              {isEditingMode && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <Input
+                      value={title}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        dispatchContentChanged();
+                      }}
+                      placeholder="Enter your blog post title"
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Keywords (comma-separated)</label>
+                    <Input
+                      value={keywords}
+                      onChange={(e) => {
+                        setKeywords(e.target.value);
+                        dispatchContentChanged();
+                      }}
+                      placeholder="keyword1, keyword2, keyword3"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Optional AI Assist for editing mode */}
+              {isEditingMode && (
+                <div className="border border-dashed border-gray-300 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">✨ AI Assist (Optional)</h4>
+                      <p className="text-xs text-gray-600">Want to regenerate or improve your content?</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('This will regenerate the content based on your title and keywords. Continue?')) {
+                          generateContent();
+                        }
+                      }}
+                      disabled={isGenerating || !title.trim()}
+                      className="flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {isGenerating ? 'Regenerating...' : 'Regenerate Content'}
+                    </Button>
+                  </div>
+                  {isGenerating && (
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${generationProgress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -530,10 +625,20 @@ export default function ContentEditor() {
                     {editingPostId ? 'Update' : 'Save'}
                   </Button>
                 </div>
+            </CardContent>
+
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Content Editor
+                  </CardTitle>
+                  <CardDescription>
+                    Word count: {content.split(' ').filter(word => word.length > 0).length} words
+                  </CardDescription>
+                </div>
               </div>
-              <CardDescription>
-                Word count: {content.split(' ').filter(word => word.length > 0).length} words
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {showPreview ? (
@@ -548,7 +653,7 @@ export default function ContentEditor() {
                     dispatchContentChanged();
                   }}
                   className="min-h-[500px] font-mono text-sm"
-                  placeholder="Generated content will appear here..."
+                  placeholder={isEditingMode ? "Edit your content here..." : "Generated content will appear here..."}
                 />
               )}
             </CardContent>
