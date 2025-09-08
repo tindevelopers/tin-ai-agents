@@ -26,14 +26,30 @@ model User {
 }
 
 model BlogPost {
-  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
-  title     String
-  content   String
-  keywords  String   @default("[]")
-  status    String   @default("draft")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
+  id               String                @id @default(dbgenerated("(gen_random_uuid())::text"))
+  title            String
+  content          String
+  keywords         String                @default("[]")
+  status           String                @default("draft")
+  slug             String?
+  meta_description String?
+  featured_image   String?
+  author           String?
+  category         String?
+  tags             String[]              @default([])
+  seo_title        String?
+  excerpt          String?
+  published_at     DateTime?
+  scheduled_for    DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @default(now()) @updatedAt
+  user_id          String?               @db.Uuid
+  
+  // Relations
+  publishing_history PublishingHistory[]
+  cms_publications   CmsPublication[]
+  sync_events        SyncEvent[]
+  
   @@map("blog_posts")
   @@schema("public")
 }
@@ -59,6 +75,128 @@ model ContentIdea {
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
 
   @@map("content_ideas")
+  @@schema("public")
+}
+
+model CmsConfiguration {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String              @db.Uuid
+  platform_type     String              @db.VarChar(50) // 'webflow', 'wordpress', 'contentful', etc.
+  name              String              @db.VarChar(255) // User-friendly name for this config
+  site_id           String?             @db.VarChar(255) // Platform-specific site identifier
+  collection_id     String?             @db.VarChar(255) // Platform-specific collection identifier
+  api_credentials   Json                // Encrypted API keys, tokens, etc.
+  field_mappings    Json                @default("{}") // Map blog fields to CMS fields
+  publishing_rules  Json                @default("{}") // Auto-publish settings, review requirements
+  is_active         Boolean             @default(true)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
+  
+  // Relations
+  publishing_history PublishingHistory[]
+  cms_publications   CmsPublication[]
+  sync_events        SyncEvent[]
+  
+  @@unique([user_id, platform_type, name])
+  @@index([user_id])
+  @@index([platform_type])
+  @@map("cms_configurations")
+  @@schema("public")
+}
+
+model PublishingHistory {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blog_id         String           // References BlogPost.id
+  cms_config_id   String           @db.Uuid
+  status          String           @db.VarChar(50) // 'pending', 'publishing', 'published', 'failed'
+  published_url   String?          // URL of published content
+  error_details   Json?            // Error information if failed
+  metadata        Json?            @default("{}") // Additional publishing metadata
+  published_at    DateTime?        @db.Timestamptz(6)
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  
+  // Relations
+  blog_post       BlogPost         @relation(fields: [blog_id], references: [id], onDelete: Cascade)
+  cms_config      CmsConfiguration @relation(fields: [cms_config_id], references: [id], onDelete: Cascade)
+  
+  @@index([blog_id])
+  @@index([cms_config_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("publishing_history")
+  @@schema("public")
+}
+
+model CmsPublication {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blog_id           String           // References BlogPost.id
+  cms_config_id     String           @db.Uuid
+  external_id       String?          @db.VarChar(255) // CMS-specific content ID
+  published_url     String?          // Live URL of the content
+  status            String           @db.VarChar(50) // 'draft', 'published', 'archived'
+  last_synced_at    DateTime?        @db.Timestamptz(6)
+  sync_hash         String?          @db.VarChar(255) // Content hash for change detection
+  external_metadata Json?            @default("{}") // CMS-specific metadata
+  created_at        DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
+  
+  // Relations
+  blog_post         BlogPost         @relation(fields: [blog_id], references: [id], onDelete: Cascade)
+  cms_config        CmsConfiguration @relation(fields: [cms_config_id], references: [id], onDelete: Cascade)
+  
+  @@unique([blog_id, cms_config_id])
+  @@index([external_id])
+  @@index([status])
+  @@index([last_synced_at])
+  @@map("cms_publications")
+  @@schema("public")
+}
+
+model SyncEvent {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cms_config_id   String           @db.Uuid
+  blog_id         String?          // Optional - may be bulk sync
+  sync_direction  String           @db.VarChar(20) // 'inbound' or 'outbound'
+  event_type      String           @db.VarChar(50) // 'create', 'update', 'delete', 'bulk_sync'
+  changes_detected Json?           @default("{}") // Details of what changed
+  status          String           @db.VarChar(50) // 'pending', 'processing', 'completed', 'failed'
+  error_details   Json?            // Error information if failed
+  processed_at    DateTime?        @db.Timestamptz(6)
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  
+  // Relations
+  cms_config      CmsConfiguration @relation(fields: [cms_config_id], references: [id], onDelete: Cascade)
+  blog_post       BlogPost?        @relation(fields: [blog_id], references: [id], onDelete: Cascade)
+  
+  @@index([cms_config_id])
+  @@index([blog_id])
+  @@index([sync_direction])
+  @@index([status])
+  @@index([created_at])
+  @@map("sync_events")
+  @@schema("public")
+}
+
+model PublishingQueue {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blog_id         String           // References BlogPost.id
+  cms_config_id   String           @db.Uuid
+  scheduled_for   DateTime         @db.Timestamptz(6)
+  priority        Int              @default(1) // Higher number = higher priority
+  retry_count     Int              @default(0)
+  max_retries     Int              @default(3)
+  status          String           @db.VarChar(50) // 'queued', 'processing', 'completed', 'failed', 'cancelled'
+  job_data        Json?            @default("{}") // Publishing parameters
+  error_details   Json?            // Error information if failed
+  processed_at    DateTime?        @db.Timestamptz(6)
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
+  
+  @@index([scheduled_for])
+  @@index([status])
+  @@index([priority])
+  @@index([created_at])
+  @@map("publishing_queue")
   @@schema("public")
 }
 
