@@ -121,7 +121,7 @@ async function handleWebflowItemChange(data: any, eventType: string) {
     data: {
       last_synced_at: new Date(),
       external_metadata: {
-        ...publication.external_metadata,
+        ...(publication.external_metadata as object || {}),
         last_webhook_event: eventType,
         last_webhook_data: item
       }
