@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
             id: true,
             title: true,
             status: true,
-            created_at: true
+            createdAt: true
           }
         },
         cms_config: {
