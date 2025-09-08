@@ -10,6 +10,7 @@ import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, Search, Filter, Trend
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 import dynamic from 'next/dynamic';
 
 const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
@@ -558,7 +559,22 @@ export default function DashboardView({ onCreateNewPost }: DashboardViewProps) {
             </div>
             <div className="p-6 overflow-y-auto max-h-[70vh]">
               <div className="prose max-w-none">
-                <div className="whitespace-pre-wrap">{selectedPost.content}</div>
+                <ReactMarkdown
+                  components={{
+                    img: ({ node, ...props }) => (
+                      <img
+                        {...props}
+                        className="max-w-full h-auto rounded-lg border shadow-sm"
+                        style={{ maxHeight: '400px', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzEgOTFMMjAwIDEyMEwyMjkgOTFMMjgwIDE0MlYxODBIMjgwVjE4MEgyODBWMTgwSDI4MFYxODBIMTIwVjE0MkwxNzEgOTFaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjkwIiByPSIxMCIgZmlsbD0iIzlDQTNBRiIvPgo8dGV4dCB4PSIyMDAiIHk9IjIxMCIgZmlsbD0iIzlDQTNBRiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIExvYWRpbmcuLi48L3RleHQ+Cjwvc3ZnPgo=';
+                        }}
+                      />
+                    )
+                  }}
+                >
+                  {selectedPost.content}
+                </ReactMarkdown>
               </div>
               {selectedPost.keywords && selectedPost.keywords.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
