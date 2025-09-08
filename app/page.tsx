@@ -28,6 +28,7 @@ import {
 // Dynamic imports for new primary navigation structure
 const DashboardView = dynamic(() => import('@/components/dashboard-view'), { ssr: false });
 const CreatePostWorkflow = dynamic(() => import('@/components/create-post-workflow'), { ssr: false });
+const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
 const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
 const PublishedPosts = dynamic(() => import('@/components/published-posts'), { ssr: false });
 const DraftPosts = dynamic(() => import('@/components/draft-posts'), { ssr: false });
@@ -56,6 +57,7 @@ export default function HomePage() {
   const [newPostStep, setNewPostStep] = useState<'keywords' | 'strategy' | 'editor'>('keywords');
   const [editingPostTitle, setEditingPostTitle] = useState<string>('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+  const [skipWorkflow, setSkipWorkflow] = useState<boolean>(false);
   const { buildBreadcrumb } = useBreadcrumb();
 
   // Listen for editing state changes from localStorage and events
@@ -83,11 +85,18 @@ export default function HomePage() {
     const handleCreateNewPost = () => {
       setEditingPostTitle('');
       setHasUnsavedChanges(false);
+      setSkipWorkflow(false); // Reset to show workflow for new posts
     };
     const handleNavigateToTab = (event: CustomEvent) => {
-      const { tab } = event.detail;
+      const { tab, skipWorkflow: shouldSkipWorkflow } = event.detail;
       if (tab && tabs.find(t => t.id === tab)) {
         setActiveTab(tab as TabType);
+        // Set skipWorkflow flag if editing a draft
+        if (shouldSkipWorkflow) {
+          setSkipWorkflow(true);
+        } else {
+          setSkipWorkflow(false); // Reset for normal navigation
+        }
       }
     };
     
@@ -117,6 +126,38 @@ export default function HomePage() {
       case 'dashboard':
         return <DashboardView onCreateNewPost={() => setActiveTab('create-post')} />;
       case 'create-post':
+        // Show content editor directly if editing a draft, otherwise show workflow
+        if (skipWorkflow) {
+          return (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-blue-900 mb-2">✏️ Editing Draft</h2>
+                    <p className="text-blue-700 text-sm">
+                      Continue working on your draft. Your changes will be saved automatically.
+                    </p>
+                    {editingPostTitle && (
+                      <p className="text-blue-600 font-medium mt-2">📝 {editingPostTitle}</p>
+                    )}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setActiveTab('drafts');
+                      setSkipWorkflow(false);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Archive className="w-4 h-4" />
+                    Back to Drafts
+                  </Button>
+                </div>
+              </div>
+              <ContentEditor />
+            </div>
+          );
+        }
         return <CreatePostWorkflow />;
       case 'my-posts':
         return <BlogList />;
@@ -162,7 +203,13 @@ export default function HomePage() {
                 <button
                   key={tab.id}
                   data-tab={tab.id}
-                  onClick={() => setActiveTab(tab.id as TabType)}
+                  onClick={() => {
+                    setActiveTab(tab.id as TabType);
+                    // Reset skipWorkflow when navigating normally
+                    if (tab.id === 'create-post') {
+                      setSkipWorkflow(false);
+                    }
+                  }}
                   className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
@@ -184,7 +231,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <BreadcrumbNavigation
               items={buildBreadcrumb(
-                activeTab,
+                skipWorkflow && activeTab === 'create-post' ? 'editing' as TabType : activeTab,
                 editingPostTitle,
                 () => setActiveTab('dashboard'),
                 () => setActiveTab('my-posts'),

@@ -76,24 +76,24 @@ export default function BlogList() {
 
   const editPost = (post: BlogPost) => {
     try {
-      // Save post data to localStorage for the content editor
       const editData = {
         id: post.id,
         title: post.title,
         content: post.content,
         keywords: post.keywords,
-        status: post.status
+        status: post.status,
+        isEditing: true, // Flag to indicate this is editing, not creating new
+        skipWorkflow: true // Skip the workflow and go directly to editor
       };
       
-      console.log('📝 Saving edit data to localStorage:', editData);
+      console.log('📝 Loading post for direct editing:', editData);
       localStorage.setItem('editPostData', JSON.stringify(editData));
       
-      // Dispatch a custom event to notify the content editor
+      // Dispatch event to switch to content editor directly (skip workflow)
+      window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'create-post', skipWorkflow: true } }));
       window.dispatchEvent(new CustomEvent('postEditRequested', { detail: editData }));
       
-      toast.success('✏️ Post loaded for editing! Switch to "Content Editor" tab to continue.', {
-        duration: 5000,
-      });
+      toast.success('✏️ Opening post in editor...');
     } catch (error) {
       console.error('❌ Error preparing post for editing:', error);
       toast.error('Failed to prepare post for editing. Please try again.');

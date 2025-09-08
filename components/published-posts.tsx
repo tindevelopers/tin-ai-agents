@@ -65,17 +65,19 @@ export default function PublishedPosts() {
         title: post.title,
         content: post.content,
         keywords: post.keywords,
-        status: post.status
+        status: post.status,
+        isEditing: true, // Flag to indicate this is editing, not creating new
+        skipWorkflow: true // Skip the workflow and go directly to editor
       };
       
-      console.log('📝 Loading published post for editing:', editData);
+      console.log('📝 Loading published post for direct editing:', editData);
       localStorage.setItem('editPostData', JSON.stringify(editData));
       
-      // Dispatch event to switch to content editor
-      window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'create-post' } }));
+      // Dispatch event to switch to content editor directly (skip workflow)
+      window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'create-post', skipWorkflow: true } }));
       window.dispatchEvent(new CustomEvent('postEditRequested', { detail: editData }));
       
-      toast.success('✏️ Published post loaded for editing!');
+      toast.success('✏️ Opening post in editor...');
     } catch (error) {
       console.error('❌ Error preparing published post for editing:', error);
       toast.error('Failed to load post for editing. Please try again.');
