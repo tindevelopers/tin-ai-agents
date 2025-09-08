@@ -48,11 +48,9 @@ Alt text: ${suggestion.altText}
 This is part of a professional blog post requiring natural, realistic imagery that doesn't look AI-generated.`;
 
         try {
-          // Call the asset retrieval tool to generate real images
-          console.log(`🎨 Calling asset_retrieval_subtask for image ${i + 1}...`);
+          // Call StabilityAI to generate real images
+          console.log(`🎨 Calling StabilityAI for image ${i + 1}...`);
           
-          // NOTE: This will be replaced with actual asset_retrieval_subtask call
-          // For now, using the mock API endpoint for testing
           const imageResult = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/asset-retrieval`, {
             method: 'POST',
             headers: {
@@ -64,37 +62,40 @@ This is part of a professional blog post requiring natural, realistic imagery th
             }),
           });
 
-          if (imageResult.ok) {
-            const assetData = await imageResult.json();
+          const assetData = await imageResult.json();
+          
+          if (imageResult.ok && assetData.success && assetData.url) {
+            // Process successful StabilityAI image generation
+            const generatedImageData = {
+              success: true,
+              url: assetData.url,
+              filename: assetData.filename || `${suggestion.imageSlug || `blog-${suggestion.type}-${Date.now()}-${i + 1}`}.jpg`,
+              type: suggestion.type,
+              altText: suggestion.altText,
+              placement: suggestion.placement,
+              description: suggestion.description || suggestion.imageTitle,
+              imageTitle: suggestion.imageTitle,
+              imageSlug: suggestion.imageSlug,
+              aspectRatio: aspectRatio,
+              generated: true,
+              realistic: true,
+              provider: assetData.provider || 'StabilityAI',
+              model: assetData.model,
+              seed: assetData.seed,
+              size: assetData.size
+            };
             
-            // Process successful image generation
-            if (assetData.success && assetData.url) {
-              const generatedImageData = {
-                success: true,
-                url: assetData.url,
-                filename: assetData.filename || `${suggestion.imageSlug || `blog-${suggestion.type}-${Date.now()}-${i + 1}`}.jpg`,
-                type: suggestion.type,
-                altText: suggestion.altText,
-                placement: suggestion.placement,
-                description: suggestion.description || suggestion.imageTitle,
-                imageTitle: suggestion.imageTitle,
-                imageSlug: suggestion.imageSlug,
-                aspectRatio: aspectRatio,
-                generated: true,
-                realistic: true
-              };
-              
-              generatedImages.push(generatedImageData);
-              console.log(`✅ Successfully generated realistic image ${i + 1}`);
-            } else {
-              throw new Error('Asset retrieval failed or returned invalid data');
-            }
+            generatedImages.push(generatedImageData);
+            console.log(`✅ Successfully generated realistic image ${i + 1} with ${assetData.provider}`);
+            
           } else {
-            throw new Error(`Asset retrieval API error: ${imageResult.statusText}`);
+            // Handle StabilityAI API errors
+            console.error(`❌ StabilityAI generation failed for image ${i + 1}:`, assetData);
+            throw new Error(assetData.error || 'StabilityAI image generation failed');
           }
           
         } catch (assetError) {
-          console.error(`⚠️ Asset retrieval failed for image ${i + 1}, using fallback:`, assetError);
+          console.error(`⚠️ StabilityAI generation failed for image ${i + 1}, using fallback:`, assetError);
           
           // Fallback to mock response if real generation fails
           const timestamp = Date.now();
