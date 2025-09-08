@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
@@ -34,6 +34,13 @@ export default function ContentEditor() {
   const [isGeneratingBacklinks, setIsGeneratingBacklinks] = useState(false);
   const [insertedLinks, setInsertedLinks] = useState<Set<number>>(new Set());
   const [contentTextareaRef, setContentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  
+  // Image generation states
+  const [showImagePanel, setShowImagePanel] = useState(false);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [imageSuggestions, setImageSuggestions] = useState<any[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<any[]>([]);
+  const [featuredImage, setFeaturedImage] = useState<any>(null);
 
   // Helper functions to dispatch content change events
   const dispatchContentChanged = () => {
@@ -146,6 +153,147 @@ export default function ContentEditor() {
     setContent(newContent);
     dispatchContentChanged();
     toast.success('Link inserted at the end of content!');
+  };
+
+  const generateImageSuggestions = async () => {
+    if (!title.trim()) {
+      toast.error('Please add a title before generating images');
+      return;
+    }
+
+    setIsGeneratingImages(true);
+    setImageSuggestions([]);
+    setGeneratedImages([]);
+
+    try {
+      console.log('🎨 Generating image suggestions...');
+      
+      const response = await fetch('/api/blog/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          content: content.substring(0, 2000), // Send first 2000 chars for analysis
+          keywords: keywords.split(',').map(k => k.trim()).filter(k => k),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.images) {
+        setImageSuggestions(data.images);
+        setShowImagePanel(true);
+        toast.success(`Generated ${data.images.length} image suggestions!`);
+      }
+
+    } catch (error) {
+      console.error('Error generating image suggestions:', error);
+      toast.error('Failed to generate image suggestions. Please try again.');
+    } finally {
+      setIsGeneratingImages(false);
+    }
+  };
+
+  const generateActualImages = async () => {
+    if (imageSuggestions.length === 0) {
+      toast.error('Please generate image suggestions first');
+      return;
+    }
+
+    setIsGeneratingImages(true);
+
+    try {
+      console.log('🖼️ Creating actual images...');
+
+      // Generate images using asset retrieval
+      const imagePromises = imageSuggestions.map(async (suggestion, index) => {
+        try {
+          console.log(`🎨 Generating image ${index + 1}: ${suggestion.description}`);
+          
+          // Create the image generation task
+          const imageTask = `Generate a high-quality professional image based on this prompt: "${suggestion.prompt}". The image should be suitable for a blog post titled "${title}". Style: modern, clean, professional, visually appealing. Aspect ratio: ${suggestion.type === 'featured' ? '16:9 landscape' : '16:10'}. Save the image with filename: blog-${suggestion.type}-${Date.now()}-${index + 1}.jpg`;
+          
+          // Make API call to generate the image
+          const response = await fetch('/api/blog/create-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageSuggestions: [suggestion],
+              blogTitle: title,
+            }),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            const generatedImage = result.images?.[0];
+            
+            if (generatedImage) {
+              return {
+                ...suggestion,
+                url: generatedImage.url,
+                generated: true,
+                filename: generatedImage.filename
+              };
+            }
+          }
+          
+          // Fallback: create placeholder image reference
+          return {
+            ...suggestion,
+            url: `/api/images/blog-${suggestion.type}-${index + 1}.jpg`,
+            generated: true,
+            filename: `blog-${suggestion.type}-${index + 1}.jpg`
+          };
+        } catch (error) {
+          console.error(`Error generating image ${index + 1}:`, error);
+          return null;
+        }
+      });
+
+      const results = await Promise.all(imagePromises);
+      const successfulImages = results.filter(img => img !== null);
+      
+      setGeneratedImages(successfulImages);
+      
+      // Set featured image
+      const featuredImg = successfulImages.find(img => img.type === 'featured');
+      if (featuredImg) {
+        setFeaturedImage(featuredImg);
+      }
+
+      toast.success(`✨ Generated ${successfulImages.length} images successfully!`);
+
+    } catch (error) {
+      console.error('Error generating actual images:', error);
+      toast.error('Failed to generate images. Please try again.');
+    } finally {
+      setIsGeneratingImages(false);
+    }
+  };
+
+  const insertImageIntoContent = (image: any) => {
+    const imageMarkdown = `\n\n![${image.altText}](${image.url})\n*${image.description}*\n\n`;
+    
+    if (image.type === 'featured') {
+      // Insert featured image at the beginning
+      const newContent = imageMarkdown + content;
+      setContent(newContent);
+    } else {
+      // Insert body images at appropriate positions
+      const paragraphs = content.split('\n\n');
+      const insertPosition = Math.floor(paragraphs.length / 2); // Insert around middle
+      
+      paragraphs.splice(insertPosition, 0, imageMarkdown.trim());
+      const newContent = paragraphs.join('\n\n');
+      setContent(newContent);
+    }
+    
+    dispatchContentChanged();
+    toast.success(`📷 Image inserted: ${image.description}`);
   };
 
   const generateContent = async () => {
@@ -800,6 +948,20 @@ export default function ContentEditor() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    setShowImagePanel(!showImagePanel);
+                  }}
+                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                >
+                  <Image className="w-4 h-4 mr-1" />
+                  Images
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     generateBacklinkSuggestions();
                   }}
                   disabled={isGeneratingBacklinks || !title.trim() || !content.trim()}
@@ -807,6 +969,21 @@ export default function ContentEditor() {
                 >
                   <Sparkles className="w-4 h-4 mr-1" />
                   {isGeneratingBacklinks ? 'Generating...' : 'Generate Links'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    generateImageSuggestions();
+                  }}
+                  disabled={isGeneratingImages || !title.trim()}
+                  className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100"
+                >
+                  <Wand2 className="w-4 h-4 mr-1" />
+                  {isGeneratingImages ? 'Generating...' : 'Generate Images'}
                 </Button>
                 <Button
                   variant="outline"
@@ -1064,6 +1241,220 @@ export default function ContentEditor() {
                   <p className="text-sm text-gray-500">
                     Add content above and click "Generate Links" to get AI-powered backlink suggestions
                   </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Image Generation Panel */}
+      {showImagePanel && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full"
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-blue-600" />
+                  AI Image Generator
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      generateImageSuggestions();
+                    }}
+                    disabled={isGeneratingImages || !title.trim()}
+                  >
+                    <Wand2 className="w-4 h-4 mr-1" />
+                    {isGeneratingImages ? 'Generating...' : 'Generate Ideas'}
+                  </Button>
+                  {imageSuggestions.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        generateActualImages();
+                      }}
+                      disabled={isGeneratingImages}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Camera className="w-4 h-4 mr-1" />
+                      {isGeneratingImages ? 'Creating Images...' : 'Create Images'}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowImagePanel(false);
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                AI-generated images to enhance your blog post visually and improve engagement
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Featured Image Section */}
+              {featuredImage && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Image className="w-5 h-5 text-blue-600" />
+                    Featured Image
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      ⭐ Main
+                    </span>
+                  </h3>
+                  <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-blue-900 mb-2">{featuredImage.description}</h4>
+                        <p className="text-sm text-blue-700 mb-2">Perfect for blog header and social media sharing</p>
+                        <div className="bg-blue-100 p-2 rounded text-xs text-blue-800 mb-2">
+                          Preview: {featuredImage.filename}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => insertImageIntoContent(featuredImage)}
+                        className="ml-3 bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Insert
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Body Images Section */}
+              {generatedImages.filter(img => img.type === 'body').length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-green-600" />
+                    Body Images ({generatedImages.filter(img => img.type === 'body').length})
+                  </h3>
+                  <div className="grid gap-3">
+                    {generatedImages.filter(img => img.type === 'body').map((image, index) => (
+                      <div key={index} className="border border-green-200 bg-green-50 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-green-900 mb-1">{image.description}</h4>
+                            <p className="text-sm text-green-700 mb-2">Supports and enhances your content flow</p>
+                            <div className="bg-green-100 p-2 rounded text-xs text-green-800 mb-2">
+                              Preview: {image.filename}
+                            </div>
+                            <p className="text-xs text-green-600">Alt text: {image.altText}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => insertImageIntoContent(image)}
+                            className="ml-3 bg-green-600 hover:bg-green-700"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Insert
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Image Suggestions (before generation) */}
+              {imageSuggestions.length > 0 && generatedImages.length === 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-orange-600" />
+                    Image Ideas ({imageSuggestions.length})
+                  </h3>
+                  <div className="grid gap-3">
+                    {imageSuggestions.map((suggestion, index) => (
+                      <div key={index} className="border border-orange-200 bg-orange-50 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-orange-900 mb-1">{suggestion.description}</h4>
+                            <p className="text-sm text-orange-700 mb-2">{suggestion.altText}</p>
+                            <div className="text-xs text-orange-600 bg-orange-100 p-2 rounded">
+                              Prompt: {suggestion.prompt.substring(0, 100)}...
+                            </div>
+                            <Badge variant="outline" className="text-xs mt-2">
+                              {suggestion.type === 'featured' ? '⭐ Featured' : '📄 Body'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-center mt-4">
+                    <p className="text-sm text-gray-600 mb-2">Ready to create these images?</p>
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        generateActualImages();
+                      }}
+                      disabled={isGeneratingImages}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Camera className="w-4 h-4 mr-1" />
+                      Create All Images
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isGeneratingImages && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600 mb-2">Generating images...</p>
+                  <p className="text-sm text-blue-600">
+                    🎨 Creating professional visuals for your blog post...
+                  </p>
+                </div>
+              )}
+
+              {!isGeneratingImages && imageSuggestions.length === 0 && generatedImages.length === 0 && (
+                <div className="text-center py-8">
+                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">No images generated yet</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Add a title and click "Generate Images" to create AI-powered visuals for your blog
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      generateImageSuggestions();
+                    }}
+                    disabled={!title.trim()}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Wand2 className="w-4 h-4 mr-1" />
+                    Generate Images
+                  </Button>
                 </div>
               )}
             </CardContent>
