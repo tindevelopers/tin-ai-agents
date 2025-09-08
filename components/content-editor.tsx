@@ -189,15 +189,17 @@ export default function ContentEditor() {
         setShowImagePanel(true);
         toast.success(`Generated ${data.images.length} image suggestions!`);
         
-        // Auto-generate actual images if content is substantial
-        if (content.length > 500) {
-          toast.info('Auto-generating images for your content...', {
-            duration: 3000,
-          });
-          setTimeout(() => {
-            generateActualImages();
-          }, 2000);
-        }
+        // Auto-generate actual images for any content with images suggestions
+        console.log('🎨 Auto-triggering actual image generation with suggestions:', data.images.length);
+        toast.info('🖼️ Creating actual images for your blog post...', {
+          duration: 3000,
+        });
+        
+        // Auto-trigger actual image generation with the fresh suggestions
+        setTimeout(() => {
+          console.log('🎨 Calling generateActualImages with fresh data...');
+          generateActualImagesWithData(data.images);
+        }, 1500);
       }
 
     } catch (error) {
@@ -208,74 +210,74 @@ export default function ContentEditor() {
     }
   };
 
+  const generateActualImagesWithData = async (suggestions: any[]) => {
+    if (!suggestions || suggestions.length === 0) {
+      toast.error('No image suggestions available');
+      return;
+    }
+    
+    await generateActualImagesInternal(suggestions);
+  };
+
   const generateActualImages = async () => {
     if (imageSuggestions.length === 0) {
       toast.error('Please generate image suggestions first');
       return;
     }
+    
+    await generateActualImagesInternal(imageSuggestions);
+  };
+
+  const generateActualImagesInternal = async (suggestions: any[]) => {
 
     setIsGeneratingImages(true);
 
     try {
       console.log('🖼️ Creating actual images...');
 
-      // Generate images using asset retrieval
-      const imagePromises = imageSuggestions.map(async (suggestion, index) => {
-        try {
-          console.log(`🎨 Generating image ${index + 1}: ${suggestion.description}`);
-          
-          // Create the image generation task
-          const imageTask = `Generate a high-quality professional image based on this prompt: "${suggestion.prompt}". The image should be suitable for a blog post titled "${title}". Style: modern, clean, professional, visually appealing. Aspect ratio: ${suggestion.type === 'featured' ? '16:9 landscape' : '16:10'}. Save the image with filename: blog-${suggestion.type}-${Date.now()}-${index + 1}.jpg`;
-          
-          // Make API call to generate the image
-          const response = await fetch('/api/blog/create-images', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              imageSuggestions: [suggestion],
-              blogTitle: title,
-            }),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            const generatedImage = result.images?.[0];
-            
-            if (generatedImage) {
-              return {
-                ...suggestion,
-                url: generatedImage.url,
-                generated: true,
-                filename: generatedImage.filename
-              };
-            }
-          }
-          
-          // Fallback: create placeholder image reference
-          return {
-            ...suggestion,
-            url: `/api/images/blog-${suggestion.type}-${index + 1}.jpg`,
-            generated: true,
-            filename: `blog-${suggestion.type}-${index + 1}.jpg`
-          };
-        } catch (error) {
-          console.error(`Error generating image ${index + 1}:`, error);
-          return null;
-        }
+      // Generate all images at once using the create-images API
+      console.log(`🎨 Generating ${suggestions.length} images...`);
+      
+      const response = await fetch('/api/blog/create-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageSuggestions: suggestions,
+          blogTitle: title,
+        }),
       });
 
-      const results = await Promise.all(imagePromises);
-      const successfulImages = results.filter(img => img !== null);
-      
-      setGeneratedImages(successfulImages);
-      
-      // Set featured image
-      const featuredImg = successfulImages.find(img => img.type === 'featured');
-      if (featuredImg) {
-        setFeaturedImage(featuredImg);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      toast.success(`✨ Generated ${successfulImages.length} images successfully!`);
+      const result = await response.json();
+      
+      if (result.success && result.images) {
+        const generatedImages = result.images.map(img => ({
+          ...img,
+          generated: true,
+          realistic: true
+        }));
+        
+        setGeneratedImages(generatedImages);
+        setShowImagePanel(true);
+        
+        toast.success(`🎉 Generated ${generatedImages.length} images successfully!`, {
+          description: 'Images are now available in the gallery',
+          duration: 5000,
+        });
+        
+        console.log('✅ Successfully generated all images');
+        
+        // Set featured image if available
+        const featuredImg = generatedImages.find(img => img.type === 'featured');
+        if (featuredImg) {
+          setFeaturedImage(featuredImg);
+        }
+      } else {
+        throw new Error('No images were generated');
+      }
 
     } catch (error) {
       console.error('Error generating actual images:', error);
@@ -370,15 +372,26 @@ export default function ContentEditor() {
               toast.success('✅ Content generated successfully!');
               
               // Auto-generate images for the new content
-              if (title.trim() && buffer.length > 300) {
+              if (title.trim() && buffer.length > 100) {
+                console.log('🎨 Auto-triggering image generation for content:', { 
+                  titleLength: title.trim().length, 
+                  contentLength: buffer.length 
+                });
+                
                 toast.info('🎨 Generating images for your blog post...', {
                   duration: 4000,
                 });
                 
-                // Delay to allow content to be set
+                // Delay to allow content to be set and then trigger image generation
                 setTimeout(() => {
+                  console.log('🎨 Calling generateImageSuggestions...');
                   generateImageSuggestions();
                 }, 2000);
+              } else {
+                console.log('❌ Auto-image generation skipped:', { 
+                  titlePresent: !!title.trim(), 
+                  contentLength: buffer.length 
+                });
               }
               
               return;
