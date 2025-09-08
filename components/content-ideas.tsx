@@ -34,26 +34,39 @@ export default function ContentIdeas() {
   };
 
   const generateIdeas = async () => {
+    console.log('🎯 Generate Ideas clicked!', {
+      useWorkflowKeywords,
+      workflowKeywords: workflowKeywords.length,
+      selectedKeywordSet,
+      loading
+    });
+
     let keywordsToUse: string[] = [];
     let sourceName = '';
     
     if (useWorkflowKeywords && workflowKeywords.length > 0) {
       keywordsToUse = workflowKeywords;
       sourceName = 'workflow keywords';
+      console.log('✅ Using workflow keywords:', keywordsToUse);
     } else if (selectedKeywordSet) {
       const selectedSet = savedKeywordSets.find(set => set.id === selectedKeywordSet);
       if (!selectedSet || !selectedSet.keywords.length) {
+        console.error('❌ Selected keyword set is empty');
         toast.error('Selected keyword set is empty');
         return;
       }
       keywordsToUse = selectedSet.keywords;
       sourceName = selectedSet.name;
+      console.log('✅ Using saved keyword set:', keywordsToUse);
     } else {
+      console.error('❌ No keywords available');
       toast.error('Please select a keyword set or use workflow keywords');
       return;
     }
 
     setLoading(true);
+    console.log('🚀 Making API request with:', { keywordsToUse, industry, audience });
+    
     try {
       const response = await fetch('/api/content/ideas', {
         method: 'POST',
@@ -65,18 +78,30 @@ export default function ContentIdeas() {
         }),
       });
       
+      console.log('📡 API Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('📋 API Response data:', data);
+      
       if (data.error) {
+        console.error('❌ API returned error:', data.error);
         toast.error(data.error);
         return;
       }
+      
       setIdeas(data.ideas || []);
+      console.log('✅ Successfully set ideas:', data.ideas?.length);
       toast.success(`Generated ${data.ideas?.length || 0} content ideas from ${sourceName}`);
     } catch (error) {
-      console.error('Error generating content ideas:', error);
-      toast.error('Failed to generate content ideas');
+      console.error('❌ Error generating content ideas:', error);
+      toast.error(`Failed to generate content ideas: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
+      console.log('🔄 Loading state reset');
     }
   };
 
@@ -101,21 +126,28 @@ export default function ContentIdeas() {
   };
 
   useEffect(() => {
+    console.log('🚀 ContentIdeas component mounted');
     loadSavedKeywordSets();
     
     // Check for keywords from workflow
     const workflowKeywordsData = localStorage.getItem('selectedKeywordsForIdeas');
+    console.log('🔍 Checking localStorage for workflow keywords:', workflowKeywordsData);
+    
     if (workflowKeywordsData) {
       try {
         const keywords = JSON.parse(workflowKeywordsData);
+        console.log('✅ Found workflow keywords:', keywords);
         setWorkflowKeywords(keywords);
         setUseWorkflowKeywords(true);
         toast.info(`Using ${keywords.length} keywords from research step`);
         // Clear the data after reading
         localStorage.removeItem('selectedKeywordsForIdeas');
+        console.log('🧹 Cleared localStorage after reading keywords');
       } catch (error) {
-        console.error('Error parsing workflow keywords:', error);
+        console.error('❌ Error parsing workflow keywords:', error);
       }
+    } else {
+      console.log('ℹ️ No workflow keywords found in localStorage');
     }
   }, []);
 
