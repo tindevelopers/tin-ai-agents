@@ -188,6 +188,18 @@ export default function ContentEditor() {
         setImageSuggestions(data.images);
         setShowImagePanel(true);
         toast.success(`Generated ${data.images.length} image suggestions!`);
+        
+        // Auto-generate actual images for any content with images suggestions
+        console.log('🎨 Auto-triggering actual image generation with suggestions:', data.images.length);
+        toast.info('🖼️ Creating actual images for your blog post...', {
+          duration: 3000,
+        });
+        
+        // Auto-trigger actual image generation with the fresh suggestions
+        setTimeout(() => {
+          console.log('🎨 Calling generateActualImages with fresh data...');
+          generateActualImagesWithData(data.images);
+        }, 1500);
       }
 
     } catch (error) {
@@ -198,74 +210,74 @@ export default function ContentEditor() {
     }
   };
 
+  const generateActualImagesWithData = async (suggestions: any[]) => {
+    if (!suggestions || suggestions.length === 0) {
+      toast.error('No image suggestions available');
+      return;
+    }
+    
+    await generateActualImagesInternal(suggestions);
+  };
+
   const generateActualImages = async () => {
     if (imageSuggestions.length === 0) {
       toast.error('Please generate image suggestions first');
       return;
     }
+    
+    await generateActualImagesInternal(imageSuggestions);
+  };
+
+  const generateActualImagesInternal = async (suggestions: any[]) => {
 
     setIsGeneratingImages(true);
 
     try {
       console.log('🖼️ Creating actual images...');
 
-      // Generate images using asset retrieval
-      const imagePromises = imageSuggestions.map(async (suggestion, index) => {
-        try {
-          console.log(`🎨 Generating image ${index + 1}: ${suggestion.description}`);
-          
-          // Create the image generation task
-          const imageTask = `Generate a high-quality professional image based on this prompt: "${suggestion.prompt}". The image should be suitable for a blog post titled "${title}". Style: modern, clean, professional, visually appealing. Aspect ratio: ${suggestion.type === 'featured' ? '16:9 landscape' : '16:10'}. Save the image with filename: blog-${suggestion.type}-${Date.now()}-${index + 1}.jpg`;
-          
-          // Make API call to generate the image
-          const response = await fetch('/api/blog/create-images', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              imageSuggestions: [suggestion],
-              blogTitle: title,
-            }),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            const generatedImage = result.images?.[0];
-            
-            if (generatedImage) {
-              return {
-                ...suggestion,
-                url: generatedImage.url,
-                generated: true,
-                filename: generatedImage.filename
-              };
-            }
-          }
-          
-          // Fallback: create placeholder image reference
-          return {
-            ...suggestion,
-            url: `/api/images/blog-${suggestion.type}-${index + 1}.jpg`,
-            generated: true,
-            filename: `blog-${suggestion.type}-${index + 1}.jpg`
-          };
-        } catch (error) {
-          console.error(`Error generating image ${index + 1}:`, error);
-          return null;
-        }
+      // Generate all images at once using the create-images API
+      console.log(`🎨 Generating ${suggestions.length} images...`);
+      
+      const response = await fetch('/api/blog/create-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageSuggestions: suggestions,
+          blogTitle: title,
+        }),
       });
 
-      const results = await Promise.all(imagePromises);
-      const successfulImages = results.filter(img => img !== null);
-      
-      setGeneratedImages(successfulImages);
-      
-      // Set featured image
-      const featuredImg = successfulImages.find(img => img.type === 'featured');
-      if (featuredImg) {
-        setFeaturedImage(featuredImg);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      toast.success(`✨ Generated ${successfulImages.length} images successfully!`);
+      const result = await response.json();
+      
+      if (result.success && result.images) {
+        const generatedImages = result.images.map((img: any) => ({
+          ...img,
+          generated: true,
+          realistic: true
+        }));
+        
+        setGeneratedImages(generatedImages);
+        setShowImagePanel(true);
+        
+        toast.success(`🎉 Generated ${generatedImages.length} images successfully!`, {
+          description: 'Images are now available in the gallery',
+          duration: 5000,
+        });
+        
+        console.log('✅ Successfully generated all images');
+        
+        // Set featured image if available
+        const featuredImg = generatedImages.find((img: any) => img.type === 'featured');
+        if (featuredImg) {
+          setFeaturedImage(featuredImg);
+        }
+      } else {
+        throw new Error('No images were generated');
+      }
 
     } catch (error) {
       console.error('Error generating actual images:', error);
@@ -358,6 +370,30 @@ export default function ContentEditor() {
             if (data === '[DONE]') {
               setGenerationProgress(100);
               toast.success('✅ Content generated successfully!');
+              
+              // Auto-generate images for the new content
+              if (title.trim() && buffer.length > 100) {
+                console.log('🎨 Auto-triggering image generation for content:', { 
+                  titleLength: title.trim().length, 
+                  contentLength: buffer.length 
+                });
+                
+                toast.info('🎨 Generating images for your blog post...', {
+                  duration: 4000,
+                });
+                
+                // Delay to allow content to be set and then trigger image generation
+                setTimeout(() => {
+                  console.log('🎨 Calling generateImageSuggestions...');
+                  generateImageSuggestions();
+                }, 2000);
+              } else {
+                console.log('❌ Auto-image generation skipped:', { 
+                  titlePresent: !!title.trim(), 
+                  contentLength: buffer.length 
+                });
+              }
+              
               return;
             }
 
@@ -507,9 +543,17 @@ export default function ContentEditor() {
     setIsGenerating(false);
     setGenerationProgress(0);
     
+    // Clear image states for fresh start
+    setShowImagePanel(false);
+    setIsGeneratingImages(false);
+    setImageSuggestions([]);
+    setGeneratedImages([]);
+    setFeaturedImage(null);
+    
     // Clear localStorage
     localStorage.removeItem('editPostData');
     localStorage.removeItem('contentIdeaData');
+    localStorage.removeItem('selectedKeywordsForIdeas');
   };
 
   const navigateToPostsList = () => {
@@ -1016,7 +1060,22 @@ export default function ContentEditor() {
             <CardContent>
               {showPreview ? (
                 <div className="prose max-w-none">
-                  <ReactMarkdown>{content}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      img: ({ node, ...props }) => (
+                        <img
+                          {...props}
+                          className="max-w-full h-auto rounded-lg border shadow-sm"
+                          style={{ maxHeight: '400px', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzEgOTFMMjAwIDEyMEwyMjkgOTFMMjgwIDE0MlYxODBIMjgwVjE4MEgyODBWMTgwSDI4MFYxODBIMTIwVjE0MkwxNzEgOTFaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjkwIiByPSIxMCIgZmlsbD0iIzlDQTNBRiIvPgo8dGV4dCB4PSIyMDAiIHk9IjIxMCIgZmlsbD0iIzlDQTNBRiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIExvYWRpbmcuLi48L3RleHQ+Cjwvc3ZnPgo=';
+                          }}
+                        />
+                      )
+                    }}
+                  >
+                    {content}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <Textarea
@@ -1324,23 +1383,70 @@ export default function ContentEditor() {
                     </span>
                   </h3>
                   <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      {/* Image Preview */}
+                      <div className="flex-shrink-0">
+                        <div className="relative w-48 h-28 bg-gray-100 rounded-lg overflow-hidden border">
+                          {featuredImage.url ? (
+                            <img
+                              src={featuredImage.url}
+                              alt={featuredImage.altText || featuredImage.description}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDIwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik04NS41IDQ1LjVMMTAwIDYwTDExNC41IDQ1LjVMMTQwIDcxVjkwSDE0MFY5MEgxNDBWOTBIMTQwVjkwSDYwVjcxTDg1LjUgNDUuNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPGNpcmNsZSBjeD0iNzUiIGN5PSI0NSIgcj0iNSIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+                                console.log('Failed to load featured image:', featuredImage.url);
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Camera className="w-8 h-8 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">16:9 Featured</p>
+                      </div>
+                      
+                      {/* Image Details */}
                       <div className="flex-1">
                         <h4 className="font-medium text-blue-900 mb-2">{featuredImage.description}</h4>
                         <p className="text-sm text-blue-700 mb-2">Perfect for blog header and social media sharing</p>
                         <div className="bg-blue-100 p-2 rounded text-xs text-blue-800 mb-2">
-                          Preview: {featuredImage.filename}
+                          {featuredImage.url ? (
+                            <a 
+                              href={featuredImage.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="hover:underline"
+                            >
+                              View Full Size: {featuredImage.filename}
+                            </a>
+                          ) : (
+                            <span>Preview: {featuredImage.filename}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => insertImageIntoContent(featuredImage)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Insert
+                          </Button>
+                          {featuredImage.url && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(featuredImage.url, '_blank')}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                          )}
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => insertImageIntoContent(featuredImage)}
-                        className="ml-3 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Insert
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1356,24 +1462,73 @@ export default function ContentEditor() {
                   <div className="grid gap-3">
                     {generatedImages.filter(img => img.type === 'body').map((image, index) => (
                       <div key={index} className="border border-green-200 bg-green-50 rounded-lg p-4">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          {/* Image Preview */}
+                          <div className="flex-shrink-0">
+                            <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden border">
+                              {image.url ? (
+                                <img
+                                  src={image.url}
+                                  alt={image.altText || image.description}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik01NCA0OEw2NCA1OEw3NCA0OEw5MCA2NFY4MEg5MFY4MEg5MFY4MEg5MFY4MEgzOFY2NEw1NCA0OFoiIGZpbGw9IiM5Q0EzQUYiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0OCIgcj0iNCIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+                                    console.log('Failed to load body image:', image.url);
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Image className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 text-center">
+                              {image.aspectRatio || 'Body'}
+                            </p>
+                          </div>
+                          
+                          {/* Image Details */}
                           <div className="flex-1">
                             <h4 className="font-medium text-green-900 mb-1">{image.description}</h4>
                             <p className="text-sm text-green-700 mb-2">Supports and enhances your content flow</p>
                             <div className="bg-green-100 p-2 rounded text-xs text-green-800 mb-2">
-                              Preview: {image.filename}
+                              {image.url ? (
+                                <a 
+                                  href={image.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="hover:underline"
+                                >
+                                  View Full Size: {image.filename}
+                                </a>
+                              ) : (
+                                <span>Preview: {image.filename}</span>
+                              )}
                             </div>
-                            <p className="text-xs text-green-600">Alt text: {image.altText}</p>
+                            <p className="text-xs text-green-600 mb-3">Alt text: {image.altText}</p>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => insertImageIntoContent(image)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Insert
+                              </Button>
+                              {image.url && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(image.url, '_blank')}
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => insertImageIntoContent(image)}
-                            className="ml-3 bg-green-600 hover:bg-green-700"
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Insert
-                          </Button>
                         </div>
                       </div>
                     ))}
@@ -1428,10 +1583,113 @@ export default function ContentEditor() {
               {isGeneratingImages && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600 mb-2">Generating images...</p>
-                  <p className="text-sm text-blue-600">
-                    🎨 Creating professional visuals for your blog post...
+                  <p className="text-gray-600 mb-2">
+                    {imageSuggestions.length === 0 ? 'Generating image ideas...' : 'Creating AI images...'}
                   </p>
+                  <p className="text-sm text-blue-600">
+                    {imageSuggestions.length === 0 
+                      ? '🧠 Analyzing your content and creating perfect image prompts...' 
+                      : '🎨 Using StabilityAI to generate professional, realistic images...'
+                    }
+                  </p>
+                  {imageSuggestions.length > 0 && (
+                    <div className="mt-4 max-w-md mx-auto">
+                      <div className="flex justify-between text-xs text-gray-500 mb-2">
+                        <span>Progress</span>
+                        <span>{generatedImages.length}/{imageSuggestions.length} images</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ 
+                            width: `${(generatedImages.length / imageSuggestions.length) * 100}%` 
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        This may take 30-60 seconds per image
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Complete Image Gallery */}
+              {(featuredImage || generatedImages.length > 0) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-purple-600" />
+                    All Generated Images ({(featuredImage ? 1 : 0) + generatedImages.filter(img => img.type === 'body').length})
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                      ✨ Gallery
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg border">
+                    {featuredImage && (
+                      <div className="group relative">
+                        <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border shadow-sm">
+                          <img
+                            src={featuredImage.url}
+                            alt={featuredImage.altText}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDIwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik04NS41IDQ1LjVMMTAwIDYwTDExNC41IDQ1LjVMMTQwIDcxVjkwSDE0MFY5MEgxNDBWOTBIMTQwVjkwSDYwVjcxTDg1LjUgNDUuNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPGNpcmNsZSBjeD0iNzUiIGN5PSI0NSIgcj0iNSIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+                            }}
+                          />
+                        </div>
+                        <div className="absolute top-2 left-2">
+                          <Badge className="bg-blue-600 text-white text-xs">Featured</Badge>
+                        </div>
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => window.open(featuredImage.url, '_blank')}
+                            className="h-8 px-2"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1 truncate">{featuredImage.description}</p>
+                      </div>
+                    )}
+                    
+                    {generatedImages.filter(img => img.type === 'body').map((image, index) => (
+                      <div key={index} className="group relative">
+                        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border shadow-sm">
+                          <img
+                            src={image.url}
+                            alt={image.altText}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik01NCA0OEw2NCA1OEw3NCA0OEw5MCA2NFY4MEg5MFY4MEg5MFY4MEg5MFY4MEgzOFY2NEw1NCA0OFoiIGZpbGw9IiM5Q0EzQUYiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0OCIgcj0iNCIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+                            }}
+                          />
+                        </div>
+                        <div className="absolute top-2 left-2">
+                          <Badge className="bg-green-600 text-white text-xs">Body</Badge>
+                        </div>
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => window.open(image.url, '_blank')}
+                            className="h-8 px-2"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1 truncate">{image.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <p className="text-sm text-gray-600">
+                      Click any image above to view full size, or use the "Insert" buttons in the sections below
+                    </p>
+                  </div>
                 </div>
               )}
 

@@ -31,6 +31,21 @@ export default function CreatePostWorkflow() {
   });
   const [completedSteps, setCompletedSteps] = useState<WorkflowStep[]>([]);
 
+  // Clear any existing data when workflow starts
+  useEffect(() => {
+    console.log('🚀 CreatePostWorkflow mounted - clearing old data');
+    localStorage.removeItem('editPostData');
+    localStorage.removeItem('contentIdeaData'); 
+    localStorage.removeItem('selectedKeywordsForIdeas');
+    
+    // Dispatch event to clear content editor
+    window.dispatchEvent(new CustomEvent('createNewPost'));
+    
+    toast.success('Ready to create a new blog post!', {
+      description: 'All previous data cleared - starting fresh',
+    });
+  }, []);
+
   useEffect(() => {
     // Listen for keyword research completion
     const handleKeywordsSelected = (event: CustomEvent) => {
