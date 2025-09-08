@@ -271,7 +271,7 @@ export default function ContentEditor() {
         console.log('✅ Successfully generated all images');
         
         // Set featured image if available
-        const featuredImg = generatedImages.find(img => img.type === 'featured');
+        const featuredImg = generatedImages.find((img: any) => img.type === 'featured');
         if (featuredImg) {
           setFeaturedImage(featuredImg);
         }
