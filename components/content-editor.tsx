@@ -616,7 +616,8 @@ export default function ContentEditor() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Website URL (for internal links)
+                  Website URL 
+                  <span className="text-xs text-green-600 ml-1">(for real internal links)</span>
                 </label>
                 <Input
                   value={websiteUrl}
@@ -716,7 +717,10 @@ export default function ContentEditor() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Website URL (for internal links)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Website URL 
+                      <span className="text-xs text-green-600 ml-1">(we'll crawl for real pages)</span>
+                    </label>
                     <Input
                       value={websiteUrl}
                       onChange={(e) => setWebsiteUrl(e.target.value)}
@@ -901,6 +905,9 @@ export default function ContentEditor() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <Link className="w-5 h-5 text-blue-600" />
                     Internal Links ({suggestedInternalLinks.length})
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                      ✅ Real Pages
+                    </span>
                   </h3>
                   <div className="grid gap-3">
                     {suggestedInternalLinks.map((link, index) => (
@@ -1006,7 +1013,12 @@ export default function ContentEditor() {
               {isGeneratingBacklinks && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Generating backlink suggestions...</p>
+                  <p className="text-gray-600 mb-2">Generating backlink suggestions...</p>
+                  {websiteUrl && (
+                    <p className="text-sm text-blue-600">
+                      🕷️ Crawling your website to find real internal pages...
+                    </p>
+                  )}
                 </div>
               )}
 

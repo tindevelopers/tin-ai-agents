@@ -16,56 +16,85 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate internal link suggestions
+    // Generate internal link suggestions from REAL website pages
     let internalLinks: any[] = [];
     if (websiteUrl) {
-      const internalPrompt = `Based on this blog post about "${title}" with keywords [${keywords?.join(', ')}], suggest 3-5 internal pages that should exist on the website "${websiteUrl}" and would be relevant to link to. 
+      try {
+        console.log('🕷️ Crawling website for real internal pages...');
+        
+        // First, crawl the actual website to get real pages
+        const crawlResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/blog/crawl-website`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ websiteUrl }),
+        });
+
+        if (crawlResponse.ok) {
+          const crawlData = await crawlResponse.json();
+          console.log('✅ Website crawl completed, found pages:', crawlData.pages?.length || 0);
+          
+          if (crawlData.pages && crawlData.pages.length > 0) {
+            // Use AI to match real pages to the content
+            const realPages = crawlData.pages.map((page: any) => ({
+              url: page.url,
+              title: page.title,
+              description: page.description,
+            }));
+
+            const internalPrompt = `Based on this blog post about "${title}" with keywords [${keywords?.join(', ')}], analyze these REAL pages from the website and suggest 3-5 that would be most relevant to link to.
 
 Content excerpt: ${content.substring(0, 800)}
 
-Return ONLY valid JSON in this format:
+REAL WEBSITE PAGES (choose from these only):
+${realPages.map((page: any) => `- URL: ${page.url}\n  Title: ${page.title}\n  Description: ${page.description || 'No description'}`).join('\n')}
+
+Return ONLY valid JSON selecting from the real pages above:
 {
   "internalLinks": [
     {
-      "linkText": "descriptive anchor text",
-      "suggestedUrl": "${websiteUrl}/suggested-page-path",
-      "reason": "why this link is relevant",
-      "pageTitle": "suggested internal page title"
+      "linkText": "descriptive anchor text for the real page",
+      "url": "exact URL from the list above",
+      "reason": "why this real page is relevant to the blog post",
+      "pageTitle": "exact title from the list above"
     }
   ]
 }`;
 
-      try {
-        const internalResponse = await fetch('https://apps.abacus.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.ABACUSAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an SEO expert specializing in internal linking strategies. Suggest relevant internal pages that would enhance the user experience and SEO value.'
+            const internalResponse = await fetch('https://apps.abacus.ai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.ABACUSAI_API_KEY}`
               },
-              {
-                role: 'user',
-                content: internalPrompt
-              }
-            ],
-            response_format: { type: "json_object" },
-            max_tokens: 1500,
-          }),
-        });
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are an SEO expert. You MUST only suggest internal links from the real pages provided. Never invent or hallucinate URLs.'
+                  },
+                  {
+                    role: 'user',
+                    content: internalPrompt
+                  }
+                ],
+                response_format: { type: "json_object" },
+                max_tokens: 1500,
+              }),
+            });
 
-        if (internalResponse.ok) {
-          const internalData = await internalResponse.json();
-          const parsedInternal = JSON.parse(internalData.choices[0].message.content || '{"internalLinks": []}');
-          internalLinks = parsedInternal.internalLinks || [];
+            if (internalResponse.ok) {
+              const internalData = await internalResponse.json();
+              const parsedInternal = JSON.parse(internalData.choices[0].message.content || '{"internalLinks": []}');
+              internalLinks = parsedInternal.internalLinks || [];
+              console.log('✅ Generated internal links from real pages:', internalLinks.length);
+            }
+          }
+        } else {
+          console.log('⚠️ Website crawl failed, skipping internal links');
         }
       } catch (error) {
-        console.error('Error generating internal links:', error);
+        console.error('Error crawling website for internal links:', error);
       }
     }
 
