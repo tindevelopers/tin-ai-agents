@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         const h1 = $('h1').first().text().trim();
 
         // Find internal links on this page
-        $('a[href]').each((_, element) => {
+        $('a[href]').each((_: number, element: any) => {
           const href = $(element).attr('href');
           if (href) {
             let fullUrl: string;
