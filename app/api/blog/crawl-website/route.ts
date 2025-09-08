@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; SEO-Crawler/1.0)',
           },
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          // Note: AbortSignal.timeout might not be available in all Node.js versions
+          // signal: AbortSignal.timeout(10000), // 10 second timeout
         });
 
         if (!response.ok) {
