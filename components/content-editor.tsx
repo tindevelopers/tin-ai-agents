@@ -366,7 +366,7 @@ export default function ContentEditor() {
 
   const navigateToPostsList = () => {
     // Dispatch event to switch to My Posts tab
-    window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'blog-list' } }));
+    window.dispatchEvent(new CustomEvent('navigateToTab', { detail: { tab: 'my-posts' } }));
     toast.success('📋 Navigating to your posts...');
   };
 
@@ -629,7 +629,12 @@ export default function ContentEditor() {
             </div>
 
             <Button 
-              onClick={generateContent}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                generateContent();
+              }}
               disabled={isGenerating || !title.trim()}
               className="w-full"
             >
@@ -775,18 +780,28 @@ export default function ContentEditor() {
                   {showPreview ? 'Edit' : 'Preview'}
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowBacklinkPanel(!showBacklinkPanel)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowBacklinkPanel(!showBacklinkPanel);
+                  }}
                   className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
                 >
                   <Link className="w-4 h-4 mr-1" />
                   Backlinks
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={generateBacklinkSuggestions}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    generateBacklinkSuggestions();
+                  }}
                   disabled={isGeneratingBacklinks || !title.trim() || !content.trim()}
                   className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                 >
@@ -859,18 +874,28 @@ export default function ContentEditor() {
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
-                    onClick={generateBacklinkSuggestions}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      generateBacklinkSuggestions();
+                    }}
                     disabled={isGeneratingBacklinks || !title.trim() || !content.trim()}
                   >
                     <Sparkles className="w-4 h-4 mr-1" />
                     {isGeneratingBacklinks ? 'Generating...' : 'Refresh Suggestions'}
                   </Button>
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowBacklinkPanel(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowBacklinkPanel(false);
+                    }}
                   >
                     Close
                   </Button>
@@ -924,8 +949,13 @@ export default function ContentEditor() {
                             )}
                           </div>
                           <Button
+                            type="button"
                             size="sm"
-                            onClick={() => insertLinkIntoContent(link.linkText, link.suggestedUrl, false, index)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              insertLinkIntoContent(link.linkText, link.suggestedUrl, false, index);
+                            }}
                             disabled={insertedLinks.has(index)}
                             className={`ml-3 transition-all duration-200 ${
                               insertedLinks.has(index)
@@ -983,8 +1013,13 @@ export default function ContentEditor() {
                             </a>
                           </div>
                           <Button
+                            type="button"
                             size="sm"
-                            onClick={() => insertLinkIntoContent(link.linkText, link.url, true, index + 1000)} // Add 1000 to avoid conflicts with internal links
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              insertLinkIntoContent(link.linkText, link.url, true, index + 1000);
+                            }}
                             disabled={insertedLinks.has(index + 1000)}
                             className={`ml-3 transition-all duration-200 ${
                               insertedLinks.has(index + 1000)
