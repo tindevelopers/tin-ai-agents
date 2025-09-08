@@ -254,7 +254,7 @@ export default function ContentEditor() {
       const result = await response.json();
       
       if (result.success && result.images) {
-        const generatedImages = result.images.map(img => ({
+        const generatedImages = result.images.map((img: any) => ({
           ...img,
           generated: true,
           realistic: true
