@@ -35,6 +35,45 @@ export default function ContentEditor() {
   const [insertedLinks, setInsertedLinks] = useState<Set<number>>(new Set());
   const [contentTextareaRef, setContentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   
+  // Load user's website URL on component mount
+  useEffect(() => {
+    const loadWebsiteUrl = async () => {
+      try {
+        const response = await fetch('/api/user/website-url');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.website_url) {
+            setWebsiteUrl(data.website_url);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load website URL:', error);
+      }
+    };
+
+    loadWebsiteUrl();
+  }, []);
+
+  // Function to save website URL to user profile
+  const saveWebsiteUrl = async (url: string) => {
+    try {
+      const response = await fetch('/api/user/website-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_url: url })
+      });
+      
+      if (response.ok) {
+        toast.success('Website URL saved to your profile');
+      } else {
+        toast.error('Failed to save website URL');
+      }
+    } catch (error) {
+      console.error('Failed to save website URL:', error);
+      toast.error('Failed to save website URL');
+    }
+  };
+
   // Image generation states
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
@@ -814,7 +853,12 @@ export default function ContentEditor() {
                 </label>
                 <Input
                   value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                   placeholder="https://yourwebsite.com"
                   className="w-full"
                 />
@@ -921,7 +965,12 @@ export default function ContentEditor() {
                     </label>
                     <Input
                       value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                       placeholder="https://yourwebsite.com"
                       className="w-full"
                     />
@@ -1174,7 +1223,12 @@ export default function ContentEditor() {
                   </p>
                   <Input
                     value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                     placeholder="https://yourwebsite.com"
                     className="w-full"
                   />
