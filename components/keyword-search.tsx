@@ -103,8 +103,15 @@ export default function KeywordSearch() {
   };
 
   const loadKeywordsFromCluster = (cluster: KeywordCluster) => {
+    console.log('🔄 Loading keywords from cluster:', cluster.name, cluster.keywords);
     setSelectedKeywords(cluster.keywords);
     toast.success(`Loaded ${cluster.keywords.length} keywords from "${cluster.name}"`);
+    
+    // Switch to search tab to show the loaded keywords
+    const searchTab = document.querySelector('[value="search"]') as HTMLElement;
+    if (searchTab) {
+      searchTab.click();
+    }
   };
 
   useEffect(() => {
@@ -408,10 +415,27 @@ export default function KeywordSearch() {
                             <Button
                               size="sm"
                               onClick={() => {
-                                window.dispatchEvent(new CustomEvent('keywordsSelectedForPost', { 
+                                console.log('🚀 Using keywords for post:', cluster.keywords);
+                                
+                                // Set the selected keywords state
+                                setSelectedKeywords(cluster.keywords);
+                                
+                                // Dispatch event for workflow
+                                const event = new CustomEvent('keywordsSelectedForPost', { 
                                   detail: { keywords: cluster.keywords } 
-                                }));
+                                });
+                                window.dispatchEvent(event);
+                                console.log('📡 Event dispatched:', event);
+                                
                                 toast.success(`Using ${cluster.keywords.length} keywords from "${cluster.name}" for your blog post!`);
+                                
+                                // Optional: Switch to search tab to show selected keywords
+                                setTimeout(() => {
+                                  const searchTab = document.querySelector('[value="search"]') as HTMLElement;
+                                  if (searchTab) {
+                                    searchTab.click();
+                                  }
+                                }, 1000);
                               }}
                               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex items-center gap-1"
                             >

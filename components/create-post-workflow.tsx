@@ -34,11 +34,12 @@ export default function CreatePostWorkflow() {
   useEffect(() => {
     // Listen for keyword research completion
     const handleKeywordsSelected = (event: CustomEvent) => {
+      console.log('🎯 Workflow received keywords:', event.detail);
       const keywords = event.detail.keywords;
       setWorkflowData(prev => ({ ...prev, selectedKeywords: keywords }));
       if (keywords.length > 0 && !completedSteps.includes('research')) {
         setCompletedSteps(prev => [...prev, 'research']);
-        toast.success(`Selected ${keywords.length} keywords for your blog post!`);
+        toast.success(`✅ Selected ${keywords.length} keywords! Ready for next step.`);
       }
     };
 
@@ -332,25 +333,45 @@ function KeywordResearchForWorkflow({
   onKeywordsSelected: (keywords: string[]) => void;
   selectedKeywords: string[];
 }) {
+  console.log('🔍 KeywordResearch component - selected keywords:', selectedKeywords);
+
   return (
     <div>
       <KeywordSearch />
       {selectedKeywords.length > 0 && (
-        <Card className="mt-4 border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-green-900">
-                  {selectedKeywords.length} Keywords Selected
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="mt-4 border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-green-900">
+                    ✅ {selectedKeywords.length} Keywords Selected
+                  </div>
+                  <div className="text-sm text-green-700">
+                    Ready to move to content strategy
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedKeywords.slice(0, 5).map((keyword, index) => (
+                      <Badge key={index} variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                        {keyword}
+                      </Badge>
+                    ))}
+                    {selectedKeywords.length > 5 && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                        +{selectedKeywords.length - 5} more
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm text-green-700">
-                  Ready to move to content strategy
-                </div>
+                <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
     </div>
   );
