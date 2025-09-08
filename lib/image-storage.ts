@@ -69,13 +69,11 @@ export class CloudinaryProvider implements ImageStorageProvider {
     }
 
     try {
+      // Use the exact same approach as the working direct upload
       const uploadOptions = {
         folder: options.folder || 'ai-blog-writer',
         tags: options.tags || ['ai-generated', 'blog-content'],
-        resource_type: options.resource_type || 'image',
-        quality: options.quality || 'auto',
-        format: options.format || 'auto',
-        transformation: options.transformation,
+        resource_type: 'image' as const,
         public_id: filename.replace(/\.[^/.]+$/, ''), // Remove file extension
         overwrite: true
       };

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const uploadOptions = {
       folder: 'ai-blog-writer/debug',
       tags: ['debug', 'abstraction-test'],
-      resource_type: 'image',
+      resource_type: 'image' as const,
       public_id: testFilename.replace(/\.[^/.]+$/, ''), // Remove file extension
       overwrite: true
     };
