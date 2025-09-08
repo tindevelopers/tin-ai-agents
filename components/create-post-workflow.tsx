@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowRight, ArrowLeft, Search, Lightbulb, PenTool, CheckCircle, Target } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Search, Lightbulb, PenTool, CheckCircle, Target, ArrowDown, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -39,7 +39,20 @@ export default function CreatePostWorkflow() {
       setWorkflowData(prev => ({ ...prev, selectedKeywords: keywords }));
       if (keywords.length > 0 && !completedSteps.includes('research')) {
         setCompletedSteps(prev => [...prev, 'research']);
-        toast.success(`✅ Selected ${keywords.length} keywords! Ready for next step.`);
+        toast.success(`✅ Selected ${keywords.length} keywords! Scroll down to continue.`, {
+          duration: 4000,
+        });
+        
+        // Auto-scroll to navigation after a short delay
+        setTimeout(() => {
+          const navigationElement = document.querySelector('.workflow-navigation');
+          if (navigationElement) {
+            navigationElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+          }
+        }, 1500);
       }
     };
 
@@ -221,7 +234,26 @@ export default function CreatePostWorkflow() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 relative">
+      {/* Floating Next Step Button */}
+      {canProceedToNext() && currentStepIndex < steps.length - 1 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          className="fixed bottom-6 right-6 z-50" // Show on all devices
+        >
+          <Button
+            onClick={handleNext}
+            size="lg"
+            className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-lg animate-pulse"
+          >
+            Continue to Step {currentStepIndex + 2}
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </motion.div>
+      )}
+
       {/* Progress Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -296,7 +328,7 @@ export default function CreatePostWorkflow() {
       </AnimatePresence>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+      <div className="workflow-navigation flex items-center justify-between bg-white p-4 rounded-lg shadow-sm sticky bottom-4 z-10">
         <Button
           variant="outline"
           onClick={handleBack}
@@ -309,13 +341,21 @@ export default function CreatePostWorkflow() {
         
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Target className="w-4 h-4" />
-          Research-driven workflow ensures better SEO results
+          {canProceedToNext() && currentStepIndex < steps.length - 1 ? (
+            <span className="text-green-600 font-medium">✅ Ready for next step!</span>
+          ) : (
+            'Research-driven workflow ensures better SEO results'
+          )}
         </div>
         
         <Button
           onClick={handleNext}
           disabled={!canProceedToNext() || currentStepIndex === steps.length - 1}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          className={`flex items-center gap-2 transition-all duration-300 ${
+            canProceedToNext() && currentStepIndex < steps.length - 1
+              ? 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 animate-pulse'
+              : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+          }`}
         >
           Next
           <ArrowRight className="w-4 h-4" />
@@ -344,17 +384,22 @@ function KeywordResearchForWorkflow({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="mt-4 border-green-200 bg-green-50">
+          <Card className="mt-4 border-green-200 bg-green-50 relative">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium text-green-900">
                     ✅ {selectedKeywords.length} Keywords Selected
                   </div>
-                  <div className="text-sm text-green-700">
+                  <div className="text-sm text-green-700 mb-1">
                     Ready to move to content strategy
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-green-800 mb-2">
+                    <ChevronDown className="w-4 h-4 animate-bounce" />
+                    Scroll down to continue workflow
+                    <ChevronDown className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div className="flex flex-wrap gap-1">
                     {selectedKeywords.slice(0, 5).map((keyword, index) => (
                       <Badge key={index} variant="secondary" className="bg-green-100 text-green-800 text-xs">
                         {keyword}
