@@ -49,6 +49,7 @@ model BlogPost {
   publishing_history PublishingHistory[]
   cms_publications   CmsPublication[]
   sync_events        SyncEvent[]
+  publishing_queue   PublishingQueue[]
   
   @@map("blog_posts")
   @@schema("public")
@@ -96,6 +97,7 @@ model CmsConfiguration {
   publishing_history PublishingHistory[]
   cms_publications   CmsPublication[]
   sync_events        SyncEvent[]
+  publishing_queue   PublishingQueue[]
   
   @@unique([user_id, platform_type, name])
   @@index([user_id])
@@ -191,7 +193,11 @@ model PublishingQueue {
   processed_at    DateTime?        @db.Timestamptz(6)
   created_at      DateTime         @default(now()) @db.Timestamptz(6)
   updated_at      DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
-  
+
+  // Relations
+  blog_post       BlogPost         @relation(fields: [blog_id], references: [id], onDelete: Cascade)
+  cms_config      CmsConfiguration @relation(fields: [cms_config_id], references: [id], onDelete: Cascade)
+
   @@index([scheduled_for])
   @@index([status])
   @@index([priority])
