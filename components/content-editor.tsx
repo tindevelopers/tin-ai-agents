@@ -53,6 +53,7 @@ export default function ContentEditor() {
     setIsGeneratingBacklinks(true);
     setSuggestedInternalLinks([]);
     setSuggestedExternalLinks([]);
+    setInsertedLinks(new Set()); // Reset inserted links tracking
 
     try {
       const response = await fetch('/api/blog/generate-backlinks', {
@@ -89,7 +90,7 @@ export default function ContentEditor() {
     }
   };
 
-  const insertLinkIntoContent = (linkText: string, url: string, isExternal: boolean = false) => {
+  const insertLinkIntoContent = (linkText: string, url: string, isExternal: boolean = false, linkIndex: number) => {
     const linkMarkdown = `[${linkText}](${url})${isExternal ? ' 🔗' : ''}`;
     
     // Find a good place to insert the link in the content
@@ -112,7 +113,29 @@ export default function ContentEditor() {
     
     setContent(newContent);
     dispatchContentChanged();
-    toast.success(`${isExternal ? 'External' : 'Internal'} link inserted!`);
+    
+    // Track inserted links for visual feedback
+    setInsertedLinks(prev => new Set([...prev, linkIndex]));
+    
+    // Success feedback with more details
+    toast.success(`✅ ${isExternal ? 'External' : 'Internal'} link inserted!`, {
+      description: `"${linkText}" added to your content`,
+      duration: 3000,
+    });
+
+    // Highlight the content area briefly
+    if (contentTextareaRef) {
+      contentTextareaRef.focus();
+      contentTextareaRef.scrollTop = contentTextareaRef.scrollHeight * (insertIndex / sentences.length);
+      
+      // Brief highlight effect
+      contentTextareaRef.style.boxShadow = '0 0 0 3px #10b981';
+      setTimeout(() => {
+        if (contentTextareaRef) {
+          contentTextareaRef.style.boxShadow = '';
+        }
+      }, 1000);
+    }
   };
 
   const insertLinkAtCursor = (linkText: string, url: string) => {
@@ -126,7 +149,12 @@ export default function ContentEditor() {
   };
 
   const generateContent = async () => {
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      toast.error('Please enter a title before generating content');
+      return;
+    }
+    
+    console.log('🚀 Starting content generation with:', { title, keywords, tone, wordCount });
     
     setIsGenerating(true);
     setGenerationProgress(0);
@@ -135,23 +163,39 @@ export default function ContentEditor() {
     try {
       const keywordArray = keywords ? keywords.split(',').map(k => k.trim()).filter(k => k) : [];
       
+      const requestBody = {
+        title,
+        keywords: keywordArray,
+        outline,
+        tone,
+        wordCount,
+      };
+      
+      console.log('📤 Sending request to /api/blog/generate:', requestBody);
+      
       const response = await fetch('/api/blog/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          keywords: keywordArray,
-          outline,
-          tone,
-          wordCount,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      if (!response.body) throw new Error('No response body');
+      console.log('📥 Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error:', errorText);
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body received');
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+
+      toast.success('🎯 Content generation started!');
 
       while (true) {
         const { done, value } = await reader.read();
@@ -165,6 +209,7 @@ export default function ContentEditor() {
             const data = line.slice(6);
             if (data === '[DONE]') {
               setGenerationProgress(100);
+              toast.success('✅ Content generated successfully!');
               return;
             }
 
@@ -177,15 +222,18 @@ export default function ContentEditor() {
                 setGenerationProgress(prev => Math.min(prev + 1, 95));
               }
             } catch (e) {
-              // Skip invalid JSON
+              // Skip invalid JSON chunks
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error generating content:', error);
+      console.error('❌ Content generation error:', error);
+      toast.error(`Content generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setContent(''); // Clear any partial content
     } finally {
       setIsGenerating(false);
+      setGenerationProgress(0);
     }
   };
 
@@ -776,12 +824,13 @@ export default function ContentEditor() {
                 </div>
               ) : (
                 <Textarea
+                  ref={(el) => setContentTextareaRef(el)}
                   value={content}
                   onChange={(e) => {
                     setContent(e.target.value);
                     dispatchContentChanged();
                   }}
-                  className="min-h-[500px] font-mono text-sm"
+                  className="min-h-[500px] font-mono text-sm transition-all duration-300"
                   placeholder={isEditingMode ? "Edit your content here..." : "Generated content will appear here..."}
                 />
               )}
@@ -869,11 +918,24 @@ export default function ContentEditor() {
                           </div>
                           <Button
                             size="sm"
-                            onClick={() => insertLinkIntoContent(link.linkText, link.suggestedUrl)}
-                            className="ml-3 bg-blue-600 hover:bg-blue-700"
+                            onClick={() => insertLinkIntoContent(link.linkText, link.suggestedUrl, false, index)}
+                            disabled={insertedLinks.has(index)}
+                            className={`ml-3 transition-all duration-200 ${
+                              insertedLinks.has(index)
+                                ? 'bg-green-600 text-white'
+                                : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
                           >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Insert
+                            {insertedLinks.has(index) ? (
+                              <>
+                                ✓ Inserted
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Insert
+                              </>
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -915,11 +977,24 @@ export default function ContentEditor() {
                           </div>
                           <Button
                             size="sm"
-                            onClick={() => insertLinkIntoContent(link.linkText, link.url, true)}
-                            className="ml-3 bg-green-600 hover:bg-green-700"
+                            onClick={() => insertLinkIntoContent(link.linkText, link.url, true, index + 1000)} // Add 1000 to avoid conflicts with internal links
+                            disabled={insertedLinks.has(index + 1000)}
+                            className={`ml-3 transition-all duration-200 ${
+                              insertedLinks.has(index + 1000)
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-green-600 hover:bg-green-700'
+                            }`}
                           >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Insert
+                            {insertedLinks.has(index + 1000) ? (
+                              <>
+                                ✓ Inserted
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3 h-3 mr-1" />
+                                Insert
+                              </>
+                            )}
                           </Button>
                         </div>
                       </div>
