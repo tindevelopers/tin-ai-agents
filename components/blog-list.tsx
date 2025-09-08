@@ -145,7 +145,7 @@ export default function BlogList() {
     }
   };
 
-  const updatePostStatus = async (postId: string, newStatus: string) => {
+  const updatePostStatus = async (postId: string, newStatus: 'draft' | 'ready_to_publish' | 'published') => {
     try {
       const response = await fetch('/api/blog/update-status', {
         method: 'PATCH',
@@ -164,7 +164,7 @@ export default function BlogList() {
         setBlogPosts(prevPosts => 
           prevPosts.map(post => 
             post.id === postId 
-              ? { ...post, status: newStatus, updatedAt: new Date().toISOString() }
+              ? { ...post, status: newStatus, updatedAt: new Date() }
               : post
           )
         );

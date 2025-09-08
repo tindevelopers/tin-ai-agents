@@ -54,7 +54,7 @@ export default function PublishedPosts() {
     return `${month} ${day}, ${year}`;
   };
 
-  const updatePostStatus = async (postId: string, newStatus: string) => {
+  const updatePostStatus = async (postId: string, newStatus: 'draft' | 'ready_to_publish' | 'published') => {
     try {
       const response = await fetch('/api/blog/update-status', {
         method: 'PATCH',
@@ -73,7 +73,7 @@ export default function PublishedPosts() {
         setPublishedPosts(prevPosts => 
           prevPosts.map(post => 
             post.id === postId 
-              ? { ...post, status: newStatus, updatedAt: new Date().toISOString() }
+              ? { ...post, status: newStatus, updatedAt: new Date() }
               : post
           ).filter(post => post.status === 'published') // Keep only published posts in this view
         );
