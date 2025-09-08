@@ -61,6 +61,7 @@ export async function POST(
           blog_id: id,
           cms_config_id,
           scheduled_for: new Date(scheduled_for),
+          status: 'queued',
           job_data: {
             blog_post: blogPost,
             cms_config: cmsConfig

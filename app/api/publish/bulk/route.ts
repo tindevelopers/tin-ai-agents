@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
               blog_id: blogId,
               cms_config_id,
               scheduled_for: new Date(), // Immediate
+              status: 'queued',
               priority: priority + index, // Slightly staggered priority
               job_data: {
                 bulk_operation: true,
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
               blog_id: blogId,
               cms_config_id,
               scheduled_for: staggeredDate,
+              status: 'queued',
               priority,
               job_data: {
                 bulk_operation: true,
