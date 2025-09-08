@@ -129,12 +129,13 @@ export class DataForSEOService {
       const data: DataForSEOApiResponse<RelatedKeywordResult> = await response.json();
       
       if (data.status_code !== 20000) {
-        throw new Error(`DataForSEO API error: ${data.status_message}`);
+        console.error(`❌ DataForSEO Related Keywords API Error ${data.status_code}: ${data.status_message}`);
+        throw new Error(`DataForSEO API error (${data.status_code}): ${data.status_message}`);
       }
 
       return data.tasks[0]?.result || [];
     } catch (error) {
-      console.error('Error fetching related keywords:', error);
+      console.error('❌ Error fetching related keywords:', error);
       throw error;
     }
   }
@@ -163,12 +164,13 @@ export class DataForSEOService {
       const data: DataForSEOApiResponse<KeywordSuggestionResult> = await response.json();
       
       if (data.status_code !== 20000) {
-        throw new Error(`DataForSEO API error: ${data.status_message}`);
+        console.error(`❌ DataForSEO Keyword Suggestions API Error ${data.status_code}: ${data.status_message}`);
+        throw new Error(`DataForSEO API error (${data.status_code}): ${data.status_message}`);
       }
 
       return data.tasks[0]?.result || [];
     } catch (error) {
-      console.error('Error fetching keyword suggestions:', error);
+      console.error('❌ Error fetching keyword suggestions:', error);
       throw error;
     }
   }
@@ -193,7 +195,8 @@ export class DataForSEOService {
       const data = await response.json();
       
       if (data.status_code !== 20000) {
-        throw new Error(`DataForSEO API error: ${data.status_message}`);
+        console.error(`❌ DataForSEO Autocomplete API Error ${data.status_code}: ${data.status_message}`);
+        throw new Error(`DataForSEO API error (${data.status_code}): ${data.status_message}`);
       }
 
       // Transform autocomplete results to match our format
@@ -205,7 +208,7 @@ export class DataForSEOService {
         cpc: item.cpc || 0
       }));
     } catch (error) {
-      console.error('Error fetching autocomplete keywords:', error);
+      console.error('❌ Error fetching autocomplete keywords:', error);
       throw error;
     }
   }
@@ -230,12 +233,13 @@ export class DataForSEOService {
       const data: DataForSEOApiResponse<SubTopicResult> = await response.json();
       
       if (data.status_code !== 20000) {
-        throw new Error(`DataForSEO API error: ${data.status_message}`);
+        console.error(`❌ DataForSEO Sub-Topics API Error ${data.status_code}: ${data.status_message}`);
+        throw new Error(`DataForSEO API error (${data.status_code}): ${data.status_message}`);
       }
 
       return data.tasks[0]?.result || [];
     } catch (error) {
-      console.error('Error generating sub topics:', error);
+      console.error('❌ Error generating sub topics:', error);
       throw error;
     }
   }
@@ -344,6 +348,12 @@ export class DataForSEOService {
         console.log(`✅ Found ${transformedAutocomplete.length} autocomplete keywords`);
       } else {
         console.warn('❌ Autocomplete keywords failed:', autocompleteKeywords.reason);
+      }
+
+      // If all API calls failed or returned no results, throw an error to trigger AI fallback
+      if (allKeywords.length === 0) {
+        console.warn('🚨 All DataForSEO API calls failed or returned no results - triggering AI fallback');
+        throw new Error('DataForSEO API calls failed or returned no results');
       }
 
       // Remove duplicates and sort by relevance
