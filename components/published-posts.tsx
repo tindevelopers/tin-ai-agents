@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Tag, Eye, Edit, Archive, CheckCircle } from 'lucide-react';
+import { FileText, Calendar, Tag, Eye, Edit, Archive, CheckCircle, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
@@ -51,6 +51,38 @@ export default function PublishedPosts() {
     const month = months[date.getMonth()];
     const day = date.getDate();
     return `${month} ${day}, ${year}`;
+  };
+
+  const updatePostStatus = async (postId: string, newStatus: string) => {
+    try {
+      const response = await fetch('/api/blog/update-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, status: newStatus }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update post status');
+      }
+
+      if (result.success) {
+        // Update the local state
+        setPublishedPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, status: newStatus, updatedAt: new Date().toISOString() }
+              : post
+          ).filter(post => post.status === 'published') // Keep only published posts in this view
+        );
+        
+        toast.success(`✅ Post status updated to ${newStatus === 'ready_to_publish' ? 'Ready to Publish' : 'Draft'}!`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating post status:', error);
+      toast.error('Failed to update post status. Please try again.');
+    }
   };
 
   const viewPost = (post: BlogPost) => {
@@ -211,6 +243,18 @@ export default function PublishedPosts() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 min-w-[150px]">
+                      {/* Stage Management Button */}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => updatePostStatus(post.id, 'ready_to_publish')}
+                        className="w-full text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Unpublish
+                      </Button>
+                      
+                      {/* Regular Action Buttons */}
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -232,7 +276,7 @@ export default function PublishedPosts() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="w-full text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200"
+                        className="w-full text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-200"
                         onClick={() => archivePost(post.id)}
                       >
                         <Archive className="w-4 h-4 mr-2" />

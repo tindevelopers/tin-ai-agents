@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Tag, Eye, Edit, Trash2, Edit3, CheckCircle } from 'lucide-react';
+import { FileText, Calendar, Tag, Eye, Edit, Trash2, Edit3, CheckCircle, ArrowRight, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
@@ -51,6 +51,60 @@ export default function DraftPosts() {
     const month = months[date.getMonth()];
     const day = date.getDate();
     return `${month} ${day}, ${year}`;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'published':
+        return 'bg-green-100 text-green-800';
+      case 'ready_to_publish':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const getStatusDisplayName = (status: string) => {
+    switch (status) {
+      case 'ready_to_publish':
+        return 'Ready to Publish';
+      case 'published':
+        return 'Published';
+      default:
+        return 'Draft';
+    }
+  };
+
+  const updatePostStatus = async (postId: string, newStatus: string) => {
+    try {
+      const response = await fetch('/api/blog/update-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, status: newStatus }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update post status');
+      }
+
+      if (result.success) {
+        // Update the local state
+        setDraftPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, status: newStatus, updatedAt: new Date().toISOString() }
+              : post
+          ).filter(post => post.status === 'draft') // Keep only drafts in this view
+        );
+        
+        toast.success(`✅ Post status updated to ${getStatusDisplayName(newStatus)}!`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating post status:', error);
+      toast.error('Failed to update post status. Please try again.');
+    }
   };
 
   const viewPost = (post: BlogPost) => {
@@ -246,23 +300,26 @@ export default function DraftPosts() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 min-w-[150px]">
+                      {/* Stage Management Button */}
                       <Button 
                         variant="default" 
                         size="sm"
-                        onClick={() => editPost(post)}
+                        onClick={() => updatePostStatus(post.id, 'ready_to_publish')}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Continue Writing
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        Mark Ready to Publish
                       </Button>
+                      
+                      {/* Regular Action Buttons */}
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => publishPost(post.id, post.title)}
-                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                        onClick={() => editPost(post)}
+                        className="w-full hover:bg-gray-50"
                       >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Publish
+                        <Edit className="w-4 h-4 mr-2" />
+                        Continue Writing
                       </Button>
                       <Button 
                         variant="outline" 

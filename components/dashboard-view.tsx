@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, Search, Filter, TrendingUp, PenTool } from 'lucide-react';
+import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, Search, Filter, TrendingUp, PenTool, ArrowRight, CheckCircle, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
@@ -22,7 +22,7 @@ export default function DashboardView({ onCreateNewPost }: DashboardViewProps) {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'published'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'ready_to_publish' | 'published'>('all');
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -63,9 +63,25 @@ export default function DashboardView({ onCreateNewPost }: DashboardViewProps) {
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'published' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-yellow-100 text-yellow-800';
+    switch (status) {
+      case 'published':
+        return 'bg-green-100 text-green-800';
+      case 'ready_to_publish':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const getStatusDisplayName = (status: string) => {
+    switch (status) {
+      case 'ready_to_publish':
+        return 'Ready to Publish';
+      case 'published':
+        return 'Published';
+      default:
+        return 'Draft';
+    }
   };
 
   const viewPost = (post: BlogPost) => {
@@ -93,6 +109,84 @@ export default function DashboardView({ onCreateNewPost }: DashboardViewProps) {
     } catch (error) {
       console.error('❌ Error preparing post for editing:', error);
       toast.error('Failed to prepare post for editing. Please try again.');
+    }
+  };
+
+  const updatePostStatus = async (postId: string, newStatus: string) => {
+    try {
+      const response = await fetch('/api/blog/update-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, status: newStatus }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update post status');
+      }
+
+      if (result.success) {
+        // Update the local state
+        setBlogPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, status: newStatus, updatedAt: new Date().toISOString() }
+              : post
+          )
+        );
+        
+        toast.success(`✅ Post status updated to ${getStatusDisplayName(newStatus)}!`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating post status:', error);
+      toast.error('Failed to update post status. Please try again.');
+    }
+  };
+
+  const getNextStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'draft':
+        return 'ready_to_publish';
+      case 'ready_to_publish':
+        return 'published';
+      default:
+        return 'draft';
+    }
+  };
+
+  const getPreviousStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'published':
+        return 'ready_to_publish';
+      case 'ready_to_publish':
+        return 'draft';
+      default:
+        return 'draft';
+    }
+  };
+
+  const getStageProgressText = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'draft':
+        return 'Mark Ready';
+      case 'ready_to_publish':
+        return 'Publish';
+      case 'published':
+        return 'To Draft';
+      default:
+        return 'Next';
+    }
+  };
+
+  const getStageRegressText = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'published':
+        return 'Unpublish';
+      case 'ready_to_publish':
+        return 'To Draft';
+      default:
+        return 'Previous';
     }
   };
 
@@ -332,7 +426,7 @@ export default function DashboardView({ onCreateNewPost }: DashboardViewProps) {
                       </div>
                     </div>
                     <Badge className={getStatusColor(post.status)}>
-                      {post.status}
+                      {getStatusDisplayName(post.status)}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -361,6 +455,39 @@ export default function DashboardView({ onCreateNewPost }: DashboardViewProps) {
                   )}
                   
                   <div className="flex items-center gap-2">
+                    {/* Stage Management Buttons */}
+                    {post.status !== 'published' && (
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={() => updatePostStatus(post.id, getNextStatus(post.status))}
+                        className={`${
+                          post.status === 'ready_to_publish' 
+                            ? 'bg-green-600 hover:bg-green-700' 
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                        title={getStageProgressText(post.status)}
+                      >
+                        {post.status === 'ready_to_publish' ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
+                    {post.status !== 'draft' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => updatePostStatus(post.id, getPreviousStatus(post.status))}
+                        className="text-gray-600 hover:text-gray-700"
+                        title={getStageRegressText(post.status)}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
+                    )}
+                    
+                    {/* Regular Action Buttons */}
                     <Button 
                       variant="outline" 
                       size="sm"

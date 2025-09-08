@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, X } from 'lucide-react';
+import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, X, ArrowRight, CheckCircle, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
@@ -64,9 +64,25 @@ export default function BlogList() {
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'published' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-yellow-100 text-yellow-800';
+    switch (status) {
+      case 'published':
+        return 'bg-green-100 text-green-800';
+      case 'ready_to_publish':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const getStatusDisplayName = (status: string) => {
+    switch (status) {
+      case 'ready_to_publish':
+        return 'Ready to Publish';
+      case 'published':
+        return 'Published';
+      default:
+        return 'Draft';
+    }
   };
 
   const viewPost = (post: BlogPost) => {
@@ -125,6 +141,84 @@ export default function BlogList() {
     } catch (error) {
       console.error('❌ Error preparing post for modal editing:', error);
       toast.error('Failed to load post for editing. Please try again.');
+    }
+  };
+
+  const updatePostStatus = async (postId: string, newStatus: string) => {
+    try {
+      const response = await fetch('/api/blog/update-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, status: newStatus }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update post status');
+      }
+
+      if (result.success) {
+        // Update the local state
+        setBlogPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, status: newStatus, updatedAt: new Date().toISOString() }
+              : post
+          )
+        );
+        
+        toast.success(`✅ Post status updated to ${getStatusDisplayName(newStatus)}!`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating post status:', error);
+      toast.error('Failed to update post status. Please try again.');
+    }
+  };
+
+  const getNextStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'draft':
+        return 'ready_to_publish';
+      case 'ready_to_publish':
+        return 'published';
+      default:
+        return 'draft';
+    }
+  };
+
+  const getPreviousStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'published':
+        return 'ready_to_publish';
+      case 'ready_to_publish':
+        return 'draft';
+      default:
+        return 'draft';
+    }
+  };
+
+  const getStageProgressText = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'draft':
+        return 'Mark Ready to Publish';
+      case 'ready_to_publish':
+        return 'Publish Now';
+      case 'published':
+        return 'Move to Draft';
+      default:
+        return 'Next Stage';
+    }
+  };
+
+  const getStageRegressText = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'published':
+        return 'Unpublish';
+      case 'ready_to_publish':
+        return 'Back to Draft';
+      default:
+        return 'Previous Stage';
     }
   };
 
@@ -270,7 +364,7 @@ export default function BlogList() {
                           {post.title}
                         </CardTitle>
                         <Badge className={`${getStatusColor(post.status)} font-medium px-3 py-1 text-xs uppercase tracking-wide`}>
-                          {post.status}
+                          {getStatusDisplayName(post.status)}
                         </Badge>
                       </div>
                       <CardDescription className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
@@ -294,6 +388,41 @@ export default function BlogList() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 min-w-[150px]">
+                      {/* Stage Management Buttons */}
+                      <div className="flex gap-1">
+                        {post.status !== 'published' && (
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            onClick={() => updatePostStatus(post.id, getNextStatus(post.status))}
+                            className={`flex-1 text-xs ${
+                              post.status === 'ready_to_publish' 
+                                ? 'bg-green-600 hover:bg-green-700' 
+                                : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
+                          >
+                            {post.status === 'ready_to_publish' ? (
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                            ) : (
+                              <ArrowRight className="w-3 h-3 mr-1" />
+                            )}
+                            {getStageProgressText(post.status)}
+                          </Button>
+                        )}
+                        {post.status !== 'draft' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => updatePostStatus(post.id, getPreviousStatus(post.status))}
+                            className="flex-1 text-xs text-gray-600 hover:text-gray-700"
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1" />
+                            {getStageRegressText(post.status)}
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Regular Action Buttons */}
                       <Button 
                         variant="default" 
                         size="sm"
