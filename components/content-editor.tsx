@@ -188,6 +188,16 @@ export default function ContentEditor() {
         setImageSuggestions(data.images);
         setShowImagePanel(true);
         toast.success(`Generated ${data.images.length} image suggestions!`);
+        
+        // Auto-generate actual images if content is substantial
+        if (content.length > 500) {
+          toast.info('Auto-generating images for your content...', {
+            duration: 3000,
+          });
+          setTimeout(() => {
+            generateActualImages();
+          }, 2000);
+        }
       }
 
     } catch (error) {
@@ -358,6 +368,19 @@ export default function ContentEditor() {
             if (data === '[DONE]') {
               setGenerationProgress(100);
               toast.success('✅ Content generated successfully!');
+              
+              // Auto-generate images for the new content
+              if (title.trim() && buffer.length > 300) {
+                toast.info('🎨 Generating images for your blog post...', {
+                  duration: 4000,
+                });
+                
+                // Delay to allow content to be set
+                setTimeout(() => {
+                  generateImageSuggestions();
+                }, 2000);
+              }
+              
               return;
             }
 
@@ -507,9 +530,17 @@ export default function ContentEditor() {
     setIsGenerating(false);
     setGenerationProgress(0);
     
+    // Clear image states for fresh start
+    setShowImagePanel(false);
+    setIsGeneratingImages(false);
+    setImageSuggestions([]);
+    setGeneratedImages([]);
+    setFeaturedImage(null);
+    
     // Clear localStorage
     localStorage.removeItem('editPostData');
     localStorage.removeItem('contentIdeaData');
+    localStorage.removeItem('selectedKeywordsForIdeas');
   };
 
   const navigateToPostsList = () => {

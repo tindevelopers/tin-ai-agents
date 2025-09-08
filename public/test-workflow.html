@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Debug Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover { background: #0056b3; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .results { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border-radius: 4px; 
+            font-size: 14px;
+        }
+        .hidden { display: none; }
+        .log {
+            height: 200px;
+            overflow-y: auto;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 AI BlogWriter Pro - Workflow Debug Test</h1>
+    <p>This tool helps diagnose workflow issues and data persistence problems.</p>
+
+    <!-- Test 1: API Health Check -->
+    <div class="section">
+        <h3>1. API Health Check</h3>
+        <button class="button" onclick="testApis()">Test All APIs</button>
+        <div id="api-results" class="results hidden"></div>
+    </div>
+
+    <!-- Test 2: LocalStorage Test -->
+    <div class="section">
+        <h3>2. LocalStorage & Event System Test</h3>
+        <button class="button" onclick="testLocalStorage()">Test LocalStorage</button>
+        <button class="button" onclick="testEvents()">Test Custom Events</button>
+        <button class="button" onclick="clearAllLocalStorage()">Clear All LocalStorage</button>
+        <div id="storage-results" class="results hidden"></div>
+    </div>
+
+    <!-- Test 3: Workflow Simulation -->
+    <div class="section">
+        <h3>3. Workflow Simulation Test</h3>
+        <button class="button" onclick="simulateWorkflow()">Simulate Complete Workflow</button>
+        <div id="workflow-results" class="results hidden"></div>
+    </div>
+
+    <!-- Test 4: Event Log -->
+    <div class="section">
+        <h3>4. Real-time Event Log</h3>
+        <button class="button" onclick="startEventLogging()">Start Event Monitoring</button>
+        <button class="button" onclick="clearLog()">Clear Log</button>
+        <div id="event-log" class="log"></div>
+    </div>
+
+    <!-- Test 5: Data Inspection -->
+    <div class="section">
+        <h3>5. Current Data State</h3>
+        <button class="button" onclick="inspectData()">Inspect Current Data</button>
+        <div id="data-results" class="results hidden"></div>
+    </div>
+
+    <script>
+        let eventLogger = null;
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#fff';
+            logElement.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        async function testApis() {
+            const results = document.getElementById('api-results');
+            results.className = 'results';
+            results.innerHTML = 'Testing APIs...';
+            
+            const tests = [];
+            
+            // Test keyword search
+            try {
+                const keywordResponse = await fetch('/api/keywords/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: 'test', niche: 'technology' })
+                });
+                const keywordData = await keywordResponse.json();
+                tests.push(`✅ Keywords API: ${keywordData.keywords?.length || 0} keywords returned`);
+            } catch (error) {
+                tests.push(`❌ Keywords API: ${error.message}`);
+            }
+            
+            // Test content ideas
+            try {
+                const ideasResponse = await fetch('/api/content/ideas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keywords: ['test'] })
+                });
+                const ideasData = await ideasResponse.json();
+                tests.push(`✅ Content Ideas API: ${ideasData.ideas?.length || 0} ideas returned`);
+            } catch (error) {
+                tests.push(`❌ Content Ideas API: ${error.message}`);
+            }
+            
+            // Test content generation
+            try {
+                const generateResponse = await fetch('/api/blog/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: 'Test Blog Post', keywords: ['test'] })
+                });
+                tests.push(`✅ Content Generation API: ${generateResponse.status === 200 ? 'Available' : 'Error ' + generateResponse.status}`);
+            } catch (error) {
+                tests.push(`❌ Content Generation API: ${error.message}`);
+            }
+            
+            results.innerHTML = tests.join('<br>');
+        }
+
+        function testLocalStorage() {
+            const results = document.getElementById('storage-results');
+            results.className = 'results';
+            
+            const tests = [];
+            
+            // Test basic localStorage functionality
+            try {
+                localStorage.setItem('test-key', 'test-value');
+                const retrieved = localStorage.getItem('test-key');
+                tests.push(`✅ LocalStorage Write/Read: ${retrieved === 'test-value' ? 'Working' : 'Failed'}`);
+                localStorage.removeItem('test-key');
+            } catch (error) {
+                tests.push(`❌ LocalStorage: ${error.message}`);
+            }
+            
+            // Check current workflow data
+            const editPostData = localStorage.getItem('editPostData');
+            const contentIdeaData = localStorage.getItem('contentIdeaData');
+            const selectedKeywords = localStorage.getItem('selectedKeywordsForIdeas');
+            
+            tests.push(`📝 editPostData: ${editPostData ? 'EXISTS' : 'EMPTY'}`);
+            tests.push(`💡 contentIdeaData: ${contentIdeaData ? 'EXISTS' : 'EMPTY'}`);
+            tests.push(`🔑 selectedKeywords: ${selectedKeywords ? 'EXISTS' : 'EMPTY'}`);
+            
+            results.innerHTML = tests.join('<br>');
+        }
+
+        function testEvents() {
+            const results = document.getElementById('storage-results');
+            
+            // Set up event listeners
+            const eventTypes = ['keywordsSelectedForPost', 'contentIdeaSelected', 'contentCreated'];
+            
+            eventTypes.forEach(eventType => {
+                window.addEventListener(eventType, (event) => {
+                    log(`📡 Event received: ${eventType}`, 'success');
+                    log(`📦 Event data: ${JSON.stringify(event.detail)}`, 'info');
+                });
+            });
+            
+            // Dispatch test events
+            window.dispatchEvent(new CustomEvent('keywordsSelectedForPost', { 
+                detail: { keywords: ['test1', 'test2'] } 
+            }));
+            
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('contentIdeaSelected', { 
+                    detail: { idea: { title: 'Test Idea', description: 'Test Description' } } 
+                }));
+            }, 1000);
+            
+            log('🚀 Test events dispatched', 'info');
+        }
+
+        async function simulateWorkflow() {
+            const results = document.getElementById('workflow-results');
+            results.className = 'results';
+            results.innerHTML = 'Starting workflow simulation...';
+            
+            const steps = [];
+            
+            // Step 1: Clear existing data
+            localStorage.clear();
+            steps.push('✅ Cleared existing data');
+            
+            // Step 2: Simulate keyword selection
+            const testKeywords = ['AI blogging', 'content creation', 'SEO optimization'];
+            localStorage.setItem('selectedKeywordsForIdeas', JSON.stringify(testKeywords));
+            window.dispatchEvent(new CustomEvent('keywordsSelectedForPost', { 
+                detail: { keywords: testKeywords } 
+            }));
+            steps.push(`✅ Keywords selected: ${testKeywords.length} keywords`);
+            
+            // Step 3: Wait and simulate content idea selection
+            setTimeout(() => {
+                const testIdea = {
+                    title: 'Test Blog Post: AI-Powered Content Creation',
+                    description: 'A comprehensive guide to using AI for creating better blog content',
+                    keywords: testKeywords,
+                    category: 'how-to'
+                };
+                
+                localStorage.setItem('contentIdeaData', JSON.stringify(testIdea));
+                window.dispatchEvent(new CustomEvent('contentIdeaSelected', { 
+                    detail: { idea: testIdea } 
+                }));
+                steps.push('✅ Content idea selected');
+                
+                // Step 4: Check final state
+                setTimeout(() => {
+                    const finalEditData = localStorage.getItem('editPostData');
+                    const finalIdeaData = localStorage.getItem('contentIdeaData');
+                    
+                    steps.push(`📊 Final editPostData: ${finalEditData ? 'EXISTS' : 'EMPTY'}`);
+                    steps.push(`📊 Final contentIdeaData: ${finalIdeaData ? 'EXISTS' : 'EMPTY'}`);
+                    
+                    results.innerHTML = steps.join('<br>');
+                }, 1000);
+                
+                results.innerHTML = steps.join('<br>');
+            }, 2000);
+            
+            results.innerHTML = steps.join('<br>');
+        }
+
+        function startEventLogging() {
+            if (eventLogger) return;
+            
+            const events = [
+                'keywordsSelectedForPost',
+                'contentIdeaSelected', 
+                'contentCreated',
+                'postEditRequested',
+                'createNewPost',
+                'navigateToTab',
+                'contentChanged',
+                'contentSaved',
+                'storage'
+            ];
+            
+            events.forEach(eventType => {
+                if (eventType === 'storage') {
+                    window.addEventListener(eventType, (event) => {
+                        log(`🗄️ Storage changed: ${event.key} = ${event.newValue}`, 'info');
+                    });
+                } else {
+                    window.addEventListener(eventType, (event) => {
+                        log(`📡 ${eventType}: ${JSON.stringify(event.detail || 'no detail')}`, 'success');
+                    });
+                }
+            });
+            
+            log('👂 Event logging started for all workflow events', 'success');
+            eventLogger = true;
+        }
+
+        function clearAllLocalStorage() {
+            localStorage.clear();
+            log('🗑️ All localStorage data cleared', 'success');
+            testLocalStorage();
+        }
+
+        function clearLog() {
+            document.getElementById('event-log').innerHTML = '';
+        }
+
+        function inspectData() {
+            const results = document.getElementById('data-results');
+            results.className = 'results';
+            
+            const allData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                allData[key] = localStorage.getItem(key);
+            }
+            
+            results.innerHTML = `
+                <h4>📋 Current LocalStorage Contents:</h4>
+                <pre>${JSON.stringify(allData, null, 2)}</pre>
+                <h4>🌐 Current URL:</h4>
+                <pre>${window.location.href}</pre>
+                <h4>📊 Page Info:</h4>
+                <pre>Title: ${document.title}
+UserAgent: ${navigator.userAgent}</pre>
+            `;
+        }
+
+        // Auto-start event logging
+        startEventLogging();
+        log('🚀 Workflow Debug Test loaded', 'success');
+    </script>
+</body>
+</html>

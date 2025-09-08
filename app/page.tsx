@@ -208,6 +208,10 @@ export default function HomePage() {
                     // Reset skipWorkflow when navigating normally
                     if (tab.id === 'create-post') {
                       setSkipWorkflow(false);
+                      // Clear any existing edit data when starting fresh
+                      localStorage.removeItem('editPostData');
+                      localStorage.removeItem('contentIdeaData');
+                      localStorage.removeItem('selectedKeywordsForIdeas');
                     }
                   }}
                   className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
