@@ -1,7 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { getImageStorage } from '@/lib/image-storage';
 
 export const runtime = 'nodejs';
 
@@ -158,27 +157,23 @@ export async function POST(request: NextRequest) {
     const imageData = responseData.artifacts[0];
     const base64Image = imageData.base64;
 
-    // Create uploads directory if it doesn't exist
-    // Note: In Next.js, public directory should be at project root, not inside app
-    const uploadsDir = path.join(process.cwd(), 'public', 'generated-images');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (mkdirError) {
-      console.log('Directory already exists or created');
-    }
-
-    // Save image to file system
-    const imagePath = path.join(uploadsDir, cleanFilename);
+    // Upload image to Cloudinary instead of saving to local filesystem
     const imageBuffer = Buffer.from(base64Image, 'base64');
+    const imageStorage = getImageStorage();
     
-    await writeFile(imagePath, imageBuffer);
+    console.log('📤 Uploading image to Cloudinary...');
+    const uploadResult = await imageStorage.upload(imageBuffer, cleanFilename, {
+      folder: 'ai-blog-writer/generated-images',
+      tags: ['ai-generated', 'blog-content', 'stability-ai']
+    });
 
-    const publicUrl = `/generated-images/${cleanFilename}`;
+    const publicUrl = uploadResult.url;
 
-    console.log('✅ Successfully generated image with StabilityAI:', {
+    console.log('✅ Successfully generated and uploaded image with StabilityAI + Cloudinary:', {
       filename: cleanFilename,
       size: `${width}x${height}`,
-      url: publicUrl
+      url: publicUrl,
+      publicId: uploadResult.publicId
     });
 
     const successResponse = {
@@ -186,6 +181,14 @@ export async function POST(request: NextRequest) {
       url: publicUrl,
       filename: cleanFilename,
       aspectRatio: aspectRatio,
+      cloudinary: {
+        publicId: uploadResult.publicId,
+        secureUrl: uploadResult.secureUrl,
+        width: uploadResult.width,
+        height: uploadResult.height,
+        format: uploadResult.format,
+        bytes: uploadResult.bytes
+      },
       size: {
         width: width,
         height: height
@@ -202,23 +205,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(successResponse);
 
   } catch (error) {
-    console.error('❌ StabilityAI image generation error:', error);
+    console.error('❌ Image generation/upload error:', error);
     
-    // Fallback response if StabilityAI fails
-    const timestamp = Date.now();
-    const fallbackResponse = {
+    // Return proper error response without fallback URLs
+    const errorResponse = {
       success: false,
-      error: 'StabilityAI image generation failed',
+      error: 'Image generation or upload failed',
       details: error instanceof Error ? error.message : 'Unknown error',
-      fallback: true,
-      // Provide a fallback mock response for testing
-      fallback_data: {
-        url: `/generated-images/fallback-${timestamp}.jpg`,
-        filename: `fallback-${timestamp}.jpg`,
-        note: 'This is a fallback response - actual image generation failed'
-      }
+      timestamp: Date.now()
     };
     
-    return NextResponse.json(fallbackResponse, { status: 500 });
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
