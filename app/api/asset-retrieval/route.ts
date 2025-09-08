@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getImageStorage } from '@/lib/image-storage';
+import { getImageStorageProvider } from '@/lib/image-storage';
 
 export const runtime = 'nodejs';
 
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     // Upload image to Cloudinary instead of saving to local filesystem
     const imageBuffer = Buffer.from(base64Image, 'base64');
-    const imageStorage = getImageStorage();
+    const imageStorage = getImageStorageProvider();
     
     console.log('📤 Uploading image to Cloudinary...');
     const uploadResult = await imageStorage.upload(imageBuffer, cleanFilename, {
