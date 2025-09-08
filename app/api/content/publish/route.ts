@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 interface PublishRequestBody {
   blogId?: string;
