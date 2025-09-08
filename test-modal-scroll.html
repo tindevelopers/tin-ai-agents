@@ -1,0 +1,224 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Modal Scrolling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal-content-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db #f9fafb;
+        }
+        
+        .modal-content-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .modal-content-scroll::-webkit-scrollbar-track {
+            background: #f9fafb;
+        }
+        
+        .modal-content-scroll::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+        
+        .modal-content-scroll::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <button id="openModal" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Test Edit Modal
+        </button>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-hidden">
+        <div class="bg-white rounded-lg max-w-6xl w-full h-[95vh] flex flex-col relative">
+            <!-- Modal Header - Fixed -->
+            <div class="flex-shrink-0 p-6 border-b border-gray-200 bg-white relative z-10">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Edit Post</h2>
+                        <p class="text-lg text-gray-600 mt-1 truncate max-w-md">Test Blog Post Title</p>
+                    </div>
+                    <button id="closeModal" class="border border-gray-300 bg-white px-3 py-2 rounded hover:bg-gray-50 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Close
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Content - Scrollable with proper height calculation -->
+            <div class="flex-1 overflow-y-auto overflow-x-hidden modal-content-scroll" style="max-height: calc(95vh - 120px)">
+                <div class="p-6">
+                    <!-- Simulated ContentEditor Content -->
+                    <div class="space-y-6 w-full">
+                        <div class="w-full">
+                            <div class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+                                <div class="mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                        </svg>
+                                        AI Content Editor
+                                    </h3>
+                                    <p class="text-gray-600">Generate and edit high-quality blog content with AI assistance</p>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <!-- Form Fields -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-sm font-medium text-gray-700 mb-1 block">
+                                                Blog Post Title *
+                                            </label>
+                                            <input class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500" 
+                                                   placeholder="Enter your blog post title..." 
+                                                   value="Test Blog Post Title">
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-medium text-gray-700 mb-1 block">
+                                                Target Keywords
+                                            </label>
+                                            <input class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500" 
+                                                   placeholder="keyword1, keyword2, keyword3" 
+                                                   value="blogging, content creation">
+                                        </div>
+                                    </div>
+
+                                    <!-- Outline -->
+                                    <div>
+                                        <label class="text-sm font-medium text-gray-700 mb-1 block">
+                                            Content Outline (Optional)
+                                        </label>
+                                        <textarea class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 min-h-[100px]" 
+                                                  placeholder="Provide an outline or key points you want to cover..."></textarea>
+                                    </div>
+
+                                    <!-- Tone and Word Count -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-sm font-medium text-gray-700 mb-1 block">
+                                                Writing Tone
+                                            </label>
+                                            <select class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500">
+                                                <option value="professional">Professional</option>
+                                                <option value="casual">Casual & Friendly</option>
+                                                <option value="formal">Formal</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-medium text-gray-700 mb-1 block">
+                                                Target Word Count
+                                            </label>
+                                            <select class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500">
+                                                <option value="500-800">500-800 words</option>
+                                                <option value="800-1200">800-1200 words</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Generate Button -->
+                                    <button class="w-full bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700">
+                                        Generate Content
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Generated Content Section -->
+                        <div class="w-full">
+                            <div class="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+                                <div class="mb-4">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            Generated Content
+                                        </h3>
+                                        <div class="flex items-center gap-2">
+                                            <button class="border border-gray-300 bg-white px-3 py-1 rounded text-sm hover:bg-gray-50">Preview</button>
+                                            <button class="border border-gray-300 bg-white px-3 py-1 rounded text-sm hover:bg-gray-50">Download</button>
+                                            <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">Save</button>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600">Word count: 1250 words</p>
+                                </div>
+                                
+                                <!-- Long Content Area -->
+                                <textarea class="w-full border border-gray-300 rounded-md p-3 font-mono text-sm" style="min-height: 800px;" readonly>
+# Test Blog Post Title
+
+This is a test blog post with a lot of content to demonstrate scrolling functionality in the modal. 
+
+## Introduction
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+
+## Section 1
+
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+
+## Section 2
+
+Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
+
+## Section 3
+
+Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?
+
+## Section 4
+
+At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.
+
+## Section 5
+
+Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.
+
+## Section 6
+
+Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat.
+
+## Conclusion
+
+This concludes our test content. You should be able to scroll through all of this content smoothly within the modal. The scrolling should work properly with the implemented CSS and layout structure.
+                                </textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('modal');
+        const openBtn = document.getElementById('openModal');
+        const closeBtn = document.getElementById('closeModal');
+
+        openBtn.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

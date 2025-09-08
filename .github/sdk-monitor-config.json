@@ -1,0 +1,34 @@
+{
+  "sdk": {
+    "repository": "tindevelopers/ai-content-publisher",
+    "branch": "main",
+    "package_name": "ai-content-publisher"
+  },
+  "monitoring": {
+    "check_interval": "0 */6 * * *",
+    "auto_update": true,
+    "create_draft_on_breaking_changes": true,
+    "max_commits_in_summary": 10
+  },
+  "pull_request": {
+    "target_branch": "develop",
+    "assignee_auto": true,
+    "labels": ["sdk-update", "automated"],
+    "reviewers": []
+  },
+  "testing": {
+    "run_compatibility_tests": true,
+    "run_integration_tests": true,
+    "fail_on_test_errors": false
+  },
+  "notifications": {
+    "enabled": false,
+    "webhook_url": "",
+    "channels": []
+  },
+  "update_strategy": {
+    "update_method": "latest_commit",
+    "preserve_local_changes": true,
+    "backup_before_update": false
+  }
+}
