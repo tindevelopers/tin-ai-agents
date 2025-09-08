@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2 } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2, Maximize2, Minimize2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ export default function ContentEditor() {
   // Image generation states
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [imageSuggestions, setImageSuggestions] = useState<any[]>([]);
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [featuredImage, setFeaturedImage] = useState<any>(null);
@@ -646,7 +647,7 @@ export default function ContentEditor() {
   const isEditingMode = editingPostSource && editingPostId && content.trim();
   
   return (
-    <div className="space-y-6 w-full">
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'space-y-6 w-full'}`}>
       {/* Only show generation interface for NEW content creation */}
       {!isEditingMode && (
         <motion.div 
@@ -1055,6 +1056,26 @@ export default function ContentEditor() {
                     Word count: {content.split(' ').filter(word => word.length > 0).length} words
                   </CardDescription>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </Button>
+                  {isFullscreen && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsFullscreen(false)}
+                      title="Close Fullscreen"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1085,7 +1106,7 @@ export default function ContentEditor() {
                     setContent(e.target.value);
                     dispatchContentChanged();
                   }}
-                  className="min-h-[500px] font-mono text-sm transition-all duration-300"
+                  className={`${isFullscreen ? 'min-h-[80vh]' : 'min-h-[500px]'} font-mono text-sm transition-all duration-300 ${isFullscreen ? 'text-base' : ''}`}
                   placeholder={isEditingMode ? "Edit your content here..." : "Generated content will appear here..."}
                 />
               )}
