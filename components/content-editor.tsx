@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
@@ -25,6 +25,13 @@ export default function ContentEditor() {
   const [contentIdeaSource, setContentIdeaSource] = useState<any>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingPostSource, setEditingPostSource] = useState<any>(null);
+  
+  // Backlink functionality states
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [suggestedInternalLinks, setSuggestedInternalLinks] = useState<any[]>([]);
+  const [suggestedExternalLinks, setSuggestedExternalLinks] = useState<any[]>([]);
+  const [showBacklinkPanel, setShowBacklinkPanel] = useState(false);
+  const [isGeneratingBacklinks, setIsGeneratingBacklinks] = useState(false);
 
   // Helper functions to dispatch content change events
   const dispatchContentChanged = () => {
@@ -33,6 +40,87 @@ export default function ContentEditor() {
 
   const dispatchContentSaved = () => {
     window.dispatchEvent(new CustomEvent('contentSaved'));
+  };
+
+  const generateBacklinkSuggestions = async () => {
+    if (!title.trim() || !content.trim()) {
+      toast.error('Please add title and content before generating backlinks');
+      return;
+    }
+
+    setIsGeneratingBacklinks(true);
+    setSuggestedInternalLinks([]);
+    setSuggestedExternalLinks([]);
+
+    try {
+      const response = await fetch('/api/blog/generate-backlinks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          content: content.substring(0, 1500), // Send first 1500 chars for analysis
+          keywords: keywords.split(',').map(k => k.trim()).filter(k => k),
+          websiteUrl: websiteUrl || null
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.internalLinks) {
+        setSuggestedInternalLinks(data.internalLinks);
+      }
+      if (data.externalLinks) {
+        setSuggestedExternalLinks(data.externalLinks);
+      }
+
+      setShowBacklinkPanel(true);
+      toast.success(`Generated ${(data.internalLinks?.length || 0) + (data.externalLinks?.length || 0)} backlink suggestions!`);
+    } catch (error) {
+      console.error('Error generating backlinks:', error);
+      toast.error('Failed to generate backlink suggestions. Please try again.');
+    } finally {
+      setIsGeneratingBacklinks(false);
+    }
+  };
+
+  const insertLinkIntoContent = (linkText: string, url: string, isExternal: boolean = false) => {
+    const linkMarkdown = `[${linkText}](${url})${isExternal ? ' 🔗' : ''}`;
+    
+    // Find a good place to insert the link in the content
+    const sentences = content.split('. ');
+    let insertIndex = Math.floor(sentences.length / 2); // Insert around middle
+    
+    // Try to find a sentence that contains related keywords
+    const keywordList = keywords.toLowerCase().split(',').map(k => k.trim());
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i].toLowerCase();
+      if (keywordList.some(keyword => sentence.includes(keyword))) {
+        insertIndex = i + 1; // Insert after this sentence
+        break;
+      }
+    }
+    
+    // Insert the link
+    sentences.splice(insertIndex, 0, `\n\n${linkMarkdown}\n`);
+    const newContent = sentences.join('. ').replace(/\.\s*\n\n\[/g, '.\n\n[');
+    
+    setContent(newContent);
+    dispatchContentChanged();
+    toast.success(`${isExternal ? 'External' : 'Internal'} link inserted!`);
+  };
+
+  const insertLinkAtCursor = (linkText: string, url: string) => {
+    const linkMarkdown = `[${linkText}](${url})`;
+    
+    // For now, append to the end - in a real implementation, you'd want to insert at cursor position
+    const newContent = content + `\n\n${linkMarkdown}`;
+    setContent(newContent);
+    dispatchContentChanged();
+    toast.success('Link inserted at the end of content!');
   };
 
   const generateContent = async () => {
@@ -444,7 +532,7 @@ export default function ContentEditor() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   Writing Tone
@@ -475,6 +563,17 @@ export default function ContentEditor() {
                   <option value="1200-1800">1200-1800 words</option>
                   <option value="1800-2500">1800-2500 words</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Website URL (for internal links)
+                </label>
+                <Input
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://yourwebsite.com"
+                  className="w-full"
+                />
               </div>
             </div>
 
@@ -541,7 +640,7 @@ export default function ContentEditor() {
             <CardContent className="space-y-4">
               {/* Quick editing fields for existing posts */}
               {isEditingMode && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg border">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <Input
@@ -563,6 +662,15 @@ export default function ContentEditor() {
                         dispatchContentChanged();
                       }}
                       placeholder="keyword1, keyword2, keyword3"
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Website URL (for internal links)</label>
+                    <Input
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="https://yourwebsite.com"
                       className="w-full"
                     />
                   </div>
@@ -603,28 +711,47 @@ export default function ContentEditor() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowPreview(!showPreview)}
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    {showPreview ? 'Edit' : 'Preview'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadMarkdown}
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </Button>
-                  <Button size="sm" onClick={saveContent}>
-                    <Save className="w-4 h-4 mr-1" />
-                    {editingPostId ? 'Update' : 'Save'}
-                  </Button>
-                </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreview(!showPreview)}
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  {showPreview ? 'Edit' : 'Preview'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBacklinkPanel(!showBacklinkPanel)}
+                  className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                >
+                  <Link className="w-4 h-4 mr-1" />
+                  Backlinks
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={generateBacklinkSuggestions}
+                  disabled={isGeneratingBacklinks || !title.trim() || !content.trim()}
+                  className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                >
+                  <Sparkles className="w-4 h-4 mr-1" />
+                  {isGeneratingBacklinks ? 'Generating...' : 'Generate Links'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadMarkdown}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Download
+                </Button>
+                <Button size="sm" onClick={saveContent}>
+                  <Save className="w-4 h-4 mr-1" />
+                  {editingPostId ? 'Update' : 'Save'}
+                </Button>
+              </div>
             </CardContent>
 
             <CardHeader>
@@ -655,6 +782,165 @@ export default function ContentEditor() {
                   className="min-h-[500px] font-mono text-sm"
                   placeholder={isEditingMode ? "Edit your content here..." : "Generated content will appear here..."}
                 />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Backlink Panel */}
+      {showBacklinkPanel && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full"
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Link className="w-5 h-5 text-purple-600" />
+                  SEO Backlinks Manager
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateBacklinkSuggestions}
+                    disabled={isGeneratingBacklinks || !title.trim() || !content.trim()}
+                  >
+                    <Sparkles className="w-4 h-4 mr-1" />
+                    {isGeneratingBacklinks ? 'Generating...' : 'Refresh Suggestions'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBacklinkPanel(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                AI-generated backlink suggestions to improve your SEO and provide value to readers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {!websiteUrl && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">Website URL Required</span>
+                  </div>
+                  <p className="text-sm text-yellow-700 mb-3">
+                    Add your website URL above to get internal link suggestions
+                  </p>
+                  <Input
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://yourwebsite.com"
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              {/* Internal Links Section */}
+              {suggestedInternalLinks.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Link className="w-5 h-5 text-blue-600" />
+                    Internal Links ({suggestedInternalLinks.length})
+                  </h3>
+                  <div className="grid gap-3">
+                    {suggestedInternalLinks.map((link, index) => (
+                      <div key={index} className="border border-blue-200 bg-blue-50 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-blue-900 mb-1">{link.linkText}</h4>
+                            <p className="text-sm text-blue-700 mb-2">{link.reason}</p>
+                            <code className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {link.suggestedUrl}
+                            </code>
+                            {link.pageTitle && (
+                              <p className="text-xs text-blue-600 mt-1">Suggested page: {link.pageTitle}</p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => insertLinkIntoContent(link.linkText, link.suggestedUrl)}
+                            className="ml-3 bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Insert
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* External Links Section */}
+              {suggestedExternalLinks.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <ExternalLink className="w-5 h-5 text-green-600" />
+                    External Links ({suggestedExternalLinks.length})
+                  </h3>
+                  <div className="grid gap-3">
+                    {suggestedExternalLinks.map((link, index) => (
+                      <div key={index} className="border border-green-200 bg-green-50 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-green-900 mb-1">{link.linkText}</h4>
+                            <p className="text-sm text-green-700 mb-2">{link.reason}</p>
+                            <div className="flex items-center gap-2 mb-2">
+                              <code className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                {link.domain}
+                              </code>
+                              <Badge variant="outline" className="text-xs">
+                                {link.type}
+                              </Badge>
+                            </div>
+                            <a 
+                              href={link.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-green-600 hover:text-green-800 underline"
+                            >
+                              Preview: {link.url}
+                            </a>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => insertLinkIntoContent(link.linkText, link.url, true)}
+                            className="ml-3 bg-green-600 hover:bg-green-700"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Insert
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isGeneratingBacklinks && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Generating backlink suggestions...</p>
+                </div>
+              )}
+
+              {!isGeneratingBacklinks && suggestedInternalLinks.length === 0 && suggestedExternalLinks.length === 0 && (
+                <div className="text-center py-8">
+                  <Link className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">No backlink suggestions yet</p>
+                  <p className="text-sm text-gray-500">
+                    Add content above and click "Generate Links" to get AI-powered backlink suggestions
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
