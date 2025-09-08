@@ -31,7 +31,7 @@ export async function POST(
     }
 
   } catch (error) {
-    console.error(`Error processing ${params.platform} webhook:`, error)
+    console.error(`Error processing ${platform} webhook:`, error)
     return NextResponse.json(
       { error: 'Failed to process webhook' },
       { status: 500 }
