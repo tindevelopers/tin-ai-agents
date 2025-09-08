@@ -18,8 +18,9 @@ function encrypt(text: string): string {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
@@ -28,7 +29,7 @@ export async function GET(
 
     const config = await prisma.cmsConfiguration.findFirst({
       where: {
-        id: params.id,
+        id: id,
         user_id: session.user.id
       },
       select: {
@@ -68,8 +69,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
@@ -90,7 +92,7 @@ export async function PUT(
     // Check if config exists and belongs to user
     const existingConfig = await prisma.cmsConfiguration.findFirst({
       where: {
-        id: params.id,
+        id: id,
         user_id: session.user.id
       }
     })
@@ -114,7 +116,7 @@ export async function PUT(
     }
 
     const config = await prisma.cmsConfiguration.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       select: {
         id: true,
@@ -142,8 +144,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
@@ -153,7 +156,7 @@ export async function DELETE(
     // Check if config exists and belongs to user
     const existingConfig = await prisma.cmsConfiguration.findFirst({
       where: {
-        id: params.id,
+        id: id,
         user_id: session.user.id
       }
     })
@@ -163,7 +166,7 @@ export async function DELETE(
     }
 
     await prisma.cmsConfiguration.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ message: 'Configuration deleted successfully' })

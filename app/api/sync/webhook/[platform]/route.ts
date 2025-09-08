@@ -6,10 +6,10 @@ const prisma = new PrismaClient()
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { platform: string } }
+  { params }: { params: Promise<{ platform: string }> }
 ) {
+  const { platform } = await params
   try {
-    const platform = params.platform
     const body = await request.json()
 
     // Verify webhook signature if available

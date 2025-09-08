@@ -8,8 +8,9 @@ const prisma = new PrismaClient()
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
@@ -29,7 +30,7 @@ export async function POST(
 
     // Get blog post
     const blogPost = await prisma.blogPost.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!blogPost) {
@@ -57,7 +58,7 @@ export async function POST(
       // Schedule for later
       const queueEntry = await prisma.publishingQueue.create({
         data: {
-          blog_id: params.id,
+          blog_id: id,
           cms_config_id,
           scheduled_for: new Date(scheduled_for),
           job_data: {
@@ -185,8 +186,9 @@ async function publishBlogPost(blogPost: any, cmsConfig: any) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
@@ -195,7 +197,7 @@ export async function GET(
 
     // Get publishing status for this blog post
     const publications = await prisma.cmsPublication.findMany({
-      where: { blog_id: params.id },
+      where: { blog_id: id },
       include: {
         cms_config: {
           select: {
@@ -208,7 +210,7 @@ export async function GET(
     })
 
     const history = await prisma.publishingHistory.findMany({
-      where: { blog_id: params.id },
+      where: { blog_id: id },
       include: {
         cms_config: {
           select: {
@@ -224,7 +226,7 @@ export async function GET(
 
     const queuedJobs = await prisma.publishingQueue.findMany({
       where: {
-        blog_id: params.id,
+        blog_id: id,
         status: { in: ['queued', 'processing'] }
       },
       orderBy: { scheduled_for: 'asc' }
