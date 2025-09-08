@@ -39,6 +39,15 @@ export default function KeywordSearch() {
       
       const data = await response.json();
       setKeywords(data.keywords || []);
+      
+      // Show data source info
+      if (data.source) {
+        if (data.source === 'DataForSEO') {
+          toast.success(`Found ${data.keywords?.length || 0} real keywords from DataForSEO API`);
+        } else if (data.source?.includes('DataForSEO fallback')) {
+          toast.warning(data.warning || 'Using AI-generated estimates due to API issues');
+        }
+      }
     } catch (error) {
       console.error('Error searching keywords:', error);
       toast.error('Failed to search keywords');
