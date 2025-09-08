@@ -32,6 +32,8 @@ export default function ContentEditor() {
   const [suggestedExternalLinks, setSuggestedExternalLinks] = useState<any[]>([]);
   const [showBacklinkPanel, setShowBacklinkPanel] = useState(false);
   const [isGeneratingBacklinks, setIsGeneratingBacklinks] = useState(false);
+  const [insertedLinks, setInsertedLinks] = useState<Set<number>>(new Set());
+  const [contentTextareaRef, setContentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
 
   // Helper functions to dispatch content change events
   const dispatchContentChanged = () => {
