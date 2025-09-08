@@ -159,7 +159,8 @@ export async function POST(request: NextRequest) {
     const base64Image = imageData.base64;
 
     // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'generated-images');
+    // Note: Next.js app is in the 'app' subdirectory, so we need to use the correct path
+    const uploadsDir = path.join(process.cwd(), 'app', 'public', 'generated-images');
     try {
       await mkdir(uploadsDir, { recursive: true });
     } catch (mkdirError) {
