@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Edit Function</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .post { border: 1px solid #ccc; margin: 10px 0; padding: 15px; }
+        button { margin: 5px; padding: 8px 12px; cursor: pointer; }
+        .edit-btn { background: #007bff; color: white; }
+        #output { margin-top: 20px; padding: 15px; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>Edit Function Test</h1>
+    
+    <div class="post">
+        <h3>Test Blog Post</h3>
+        <p>This is a test blog post content...</p>
+        <button class="edit-btn" onclick="testEditFunction()">Edit Post</button>
+    </div>
+    
+    <div id="output">
+        <h3>Debug Output:</h3>
+        <div id="debug"></div>
+    </div>
+    
+    <script>
+        // Test post data - matching your app structure
+        const testPost = {
+            id: "test-post-123",
+            title: "Test Blog Post",
+            content: "This is a test blog post content for editing...",
+            keywords: ["test", "blog", "edit"],
+            status: "draft"
+        };
+        
+        function log(message) {
+            const debug = document.getElementById('debug');
+            debug.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+        
+        function testEditFunction() {
+            try {
+                log('🚀 Starting edit function test...');
+                
+                // Save post data to localStorage (same as your app)
+                const editData = {
+                    id: testPost.id,
+                    title: testPost.title,
+                    content: testPost.content,
+                    keywords: testPost.keywords,
+                    status: testPost.status
+                };
+                
+                log('📝 Saving edit data to localStorage: ' + JSON.stringify(editData, null, 2));
+                localStorage.setItem('editPostData', JSON.stringify(editData));
+                
+                // Check if data was saved
+                const saved = localStorage.getItem('editPostData');
+                if (saved) {
+                    log('✅ Data successfully saved to localStorage');
+                    log('📊 Saved data: ' + saved);
+                    
+                    // Test parsing the data back
+                    const parsed = JSON.parse(saved);
+                    log('🔍 Parsed data title: ' + parsed.title);
+                    
+                    // Dispatch custom event (same as your app)
+                    window.dispatchEvent(new CustomEvent('postEditRequested', { detail: editData }));
+                    log('📡 Custom event dispatched');
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('✏️ Post loaded for editing! Switch to Content Editor tab to continue.');
+                    }
+                    log('✨ Test completed successfully!');
+                    
+                } else {
+                    log('❌ Failed to save data to localStorage');
+                }
+                
+            } catch (error) {
+                log('❌ Error in edit function: ' + error.message);
+                console.error('Edit function error:', error);
+            }
+        }
+        
+        // Listen for the custom event
+        window.addEventListener('postEditRequested', function(event) {
+            log('🎯 Received postEditRequested event with data: ' + JSON.stringify(event.detail));
+        });
+        
+        // Check if there's existing data on page load
+        window.addEventListener('load', function() {
+            const existing = localStorage.getItem('editPostData');
+            if (existing) {
+                log('📦 Found existing edit data: ' + existing);
+            } else {
+                log('ℹ️ No existing edit data found');
+            }
+        });
+    </script>
+</body>
+</html>

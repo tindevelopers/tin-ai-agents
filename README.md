@@ -69,7 +69,6 @@ An intelligent content creation platform powered by AI that helps you research k
 
 2. **Install dependencies**
    ```bash
-   cd app
    yarn install
    ```
 
@@ -104,28 +103,30 @@ An intelligent content creation platform powered by AI that helps you research k
 ## 📁 Project Structure
 
 ```
-ai_blogwriter_app/
-├── app/                        # Next.js app directory
-│   ├── app/                    # App router pages
-│   │   ├── api/               # API routes
-│   │   ├── page.tsx           # Main dashboard
-│   │   └── layout.tsx         # Root layout
-│   ├── components/            # React components
-│   │   ├── ui/               # Base UI components
-│   │   ├── keyword-search.tsx
-│   │   ├── keyword-clustering.tsx
-│   │   ├── content-ideas.tsx
-│   │   ├── topic-suggestions.tsx
-│   │   ├── content-editor.tsx
-│   │   └── content-strategy.tsx
-│   ├── lib/                   # Utility libraries
-│   │   ├── db.ts             # Database configuration
-│   │   ├── auth.ts           # Authentication setup
-│   │   └── types.ts          # TypeScript definitions
-│   ├── prisma/               # Database schema and migrations
-│   └── public/               # Static assets
-├── README.md
-└── .gitignore
+tin-ai-agents/
+├── app/                        # Next.js app router
+│   ├── api/                   # API routes
+│   ├── page.tsx               # Main dashboard
+│   └── layout.tsx             # Root layout
+├── components/                 # React components
+│   ├── ui/                    # Base UI components
+│   ├── keyword-search.tsx
+│   ├── keyword-clustering.tsx
+│   ├── content-ideas.tsx
+│   ├── topic-suggestions.tsx
+│   ├── content-editor.tsx
+│   └── content-strategy.tsx
+├── lib/                        # Utility libraries
+│   ├── db.ts                  # Database configuration
+│   ├── auth.ts                # Authentication setup
+│   └── types.ts               # TypeScript definitions
+├── prisma/                     # Database schema and migrations
+├── package.json               # Dependencies and scripts
+├── next.config.js             # Next.js configuration
+├── tsconfig.json              # TypeScript configuration
+├── tailwind.config.ts         # Tailwind CSS configuration
+├── README.md                  # Project documentation
+└── .gitignore                 # Git ignore rules
 ```
 
 ## 🔑 Key Features Workflow

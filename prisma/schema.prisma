@@ -1,0 +1,59 @@
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  keywords    String   // JSON string of keywords array
+  status      String   @default("draft") // draft, published
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("blog_posts")
+}
+
+model KeywordCluster {
+  id          String   @id @default(cuid())
+  name        String
+  keywords    String   // JSON string of keywords array
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("keyword_clusters")
+}
+
+model ContentIdea {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  keywords    String   // JSON string of keywords array
+  category    String?
+  createdAt   DateTime @default(now())
+  
+  @@map("content_ideas")
+}
