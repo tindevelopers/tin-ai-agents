@@ -30,6 +30,10 @@ export const authOptions: AuthOptions = {
           throw new Error('Invalid credentials')
         }
 
+        if (!user.password) {
+          throw new Error('Invalid credentials')
+        }
+
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
@@ -42,7 +46,6 @@ export const authOptions: AuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
         }
       }
     })

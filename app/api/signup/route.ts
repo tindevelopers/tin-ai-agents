@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         password: hashedPassword,
-        name: email.split('@')[0], // Use email prefix as default name
       }
     })
 
@@ -48,7 +47,6 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
       }
     })
   } catch (error) {
