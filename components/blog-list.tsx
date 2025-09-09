@@ -547,7 +547,7 @@ export default function BlogList() {
 
       {/* Edit Post Modal with Scrollable Content */}
       {showEditModal && editingModalPost && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-hidden">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-6xl w-full h-[95vh] flex flex-col relative">
             {/* Modal Header - Fixed */}
             <div className="flex-shrink-0 p-6 border-b border-gray-200 bg-white relative z-10">
@@ -569,8 +569,8 @@ export default function BlogList() {
             </div>
             
             {/* Modal Content - Scrollable with proper height calculation */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden modal-content-scroll" style={{ maxHeight: 'calc(95vh - 120px)' }}>
-              <div className="p-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden modal-content-scroll min-h-0">
+              <div className="p-6 h-full">
                 <ContentEditor />
               </div>
             </div>
