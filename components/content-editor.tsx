@@ -35,43 +35,46 @@ export default function ContentEditor() {
   const [insertedLinks, setInsertedLinks] = useState<Set<number>>(new Set());
   const [contentTextareaRef, setContentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   
+  // TODO: Re-enable website URL persistence after database migration
   // Load user's website URL on component mount
-  useEffect(() => {
-    const loadWebsiteUrl = async () => {
-      try {
-        const response = await fetch('/api/user/website-url');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.website_url) {
-            setWebsiteUrl(data.website_url);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load website URL:', error);
-      }
-    };
+  // useEffect(() => {
+  //   const loadWebsiteUrl = async () => {
+  //     try {
+  //       const response = await fetch('/api/user/website-url');
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         if (data.website_url) {
+  //           setWebsiteUrl(data.website_url);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Failed to load website URL:', error);
+  //     }
+  //   };
 
-    loadWebsiteUrl();
-  }, []);
+  //   loadWebsiteUrl();
+  // }, []);
 
-  // Function to save website URL to user profile
+  // Function to save website URL to user profile (temporarily disabled)
   const saveWebsiteUrl = async (url: string) => {
-    try {
-      const response = await fetch('/api/user/website-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website_url: url })
-      });
+    // TODO: Re-enable after database migration
+    console.log('Website URL would be saved:', url);
+    // try {
+    //   const response = await fetch('/api/user/website-url', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ website_url: url })
+    //   });
       
-      if (response.ok) {
-        toast.success('Website URL saved to your profile');
-      } else {
-        toast.error('Failed to save website URL');
-      }
-    } catch (error) {
-      console.error('Failed to save website URL:', error);
-      toast.error('Failed to save website URL');
-    }
+    //   if (response.ok) {
+    //     toast.success('Website URL saved to your profile');
+    //   } else {
+    //     toast.error('Failed to save website URL');
+    //   }
+    // } catch (error) {
+    //   console.error('Failed to save website URL:', error);
+    //   toast.error('Failed to save website URL');
+    // }
   };
 
   // Image generation states
