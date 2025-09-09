@@ -6,6 +6,7 @@ export const runtime = 'nodejs'; // Edge runtime cannot open TCP sockets (Prisma
 
 export async function GET() {
   try {
+    // Updated: 2025-01-09 - Enhanced error handling and logging
     console.log('📚 Blog list fetch attempt started');
     
     // Check if database is accessible
@@ -47,7 +48,11 @@ export async function GET() {
       keywords: JSON.parse(post.keywords || '[]'),
     }));
 
-    return NextResponse.json({ blogPosts: formattedPosts });
+    return NextResponse.json({ 
+      blogPosts: formattedPosts,
+      version: '2025-01-09-v2', // Version for deployment tracking
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('❌ Blog list fetch error:', error);
     return NextResponse.json(
