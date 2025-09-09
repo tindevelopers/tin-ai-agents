@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 interface PublishRequestBody {
   blogId?: string;
   content?: AIContent;
-  platforms: Array<'webflow' | 'wordpress'>;
+  platforms: Array<'webflow' | 'wordpress' | 'linkedin' | 'medium' | 'ghost'>;
   webflowConfig?: {
     apiKey: string;
     siteId: string;
@@ -17,19 +17,37 @@ interface PublishRequestBody {
     password: string;
     defaultCategory?: string;
   };
+  linkedinConfig?: {
+    accessToken: string;
+    authorId: string;
+    publishAsPage: boolean;
+  };
+  mediumConfig?: {
+    integrationToken: string;
+    authorId: string;
+    publishStatus: string;
+  };
+  ghostConfig?: {
+    apiUrl: string;
+    adminApiKey: string;
+    contentApiKey: string;
+  };
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: PublishRequestBody = await request.json();
-    const { blogId, content, platforms, webflowConfig, wordpressConfig } = body;
+    const { blogId, content, platforms, webflowConfig, wordpressConfig, linkedinConfig, mediumConfig, ghostConfig } = body;
 
     console.log('📤 Content publishing request:', {
       blogId,
       hasContent: !!content,
       platforms,
       hasWebflowConfig: !!webflowConfig,
-      hasWordPressConfig: !!wordpressConfig
+      hasWordPressConfig: !!wordpressConfig,
+      hasLinkedInConfig: !!linkedinConfig,
+      hasMediumConfig: !!mediumConfig,
+      hasGhostConfig: !!ghostConfig
     });
 
     // Get content from database if blogId is provided
@@ -98,6 +116,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Note: LinkedIn, Medium, and Ghost configurations will be implemented
+    // in the next version of the AI Content Publisher SDK
+    if (platforms.includes('linkedin') && linkedinConfig) {
+      console.log('💼 LinkedIn publishing requested but not yet implemented in SDK...');
+      // TODO: Implement when SDK supports LinkedIn
+      // await publisher.configureLinkedIn(linkedinConfig.accessToken, linkedinConfig.authorId, { publishAsPage: linkedinConfig.publishAsPage });
+    }
+
+    if (platforms.includes('medium') && mediumConfig) {
+      console.log('📰 Medium publishing requested but not yet implemented in SDK...');
+      // TODO: Implement when SDK supports Medium
+      // await publisher.configureMedium(mediumConfig.integrationToken, mediumConfig.authorId, { publishStatus: mediumConfig.publishStatus });
+    }
+
+    if (platforms.includes('ghost') && ghostConfig) {
+      console.log('👻 Ghost publishing requested but not yet implemented in SDK...');
+      // TODO: Implement when SDK supports Ghost
+      // await publisher.configureGhost(ghostConfig.apiUrl, ghostConfig.adminApiKey, ghostConfig.contentApiKey);
+    }
+
     // Validate content
     console.log('✅ Validating content...');
     const validation = publisher.validateContent(publishContent);
@@ -119,9 +157,36 @@ export async function POST(request: NextRequest) {
       console.log('⚠️ Content validation warnings:', validation.warnings);
     }
 
-    // Publish to platforms
-    console.log('🚀 Publishing to platforms:', platforms);
-    const results = await publisher.publishToMultiple(publishContent, platforms);
+    // Filter out platforms not yet implemented in the SDK
+    const supportedPlatforms = platforms.filter(platform => 
+      ['webflow', 'wordpress'].includes(platform)
+    ) as Array<'webflow' | 'wordpress'>;
+    const unsupportedPlatforms = platforms.filter(platform => 
+      !['webflow', 'wordpress'].includes(platform)
+    );
+
+    console.log('🚀 Publishing to supported platforms:', supportedPlatforms);
+    if (unsupportedPlatforms.length > 0) {
+      console.log('⏳ Unsupported platforms (coming soon):', unsupportedPlatforms);
+    }
+
+    // Publish to supported platforms
+    let results: { [platform: string]: any } = {};
+    
+    if (supportedPlatforms.length > 0) {
+      results = await publisher.publishToMultiple(publishContent, supportedPlatforms);
+    }
+
+    // Add placeholder results for unsupported platforms
+    unsupportedPlatforms.forEach(platform => {
+      results[platform] = {
+        success: false,
+        message: `${platform} publishing is coming soon! UI ready, SDK implementation in progress.`,
+        contentId: null,
+        url: null,
+        errors: [`${platform} adapter not yet implemented in SDK`]
+      };
+    });
 
     // Check results
     const hasErrors = Object.values(results).some(result => !result.success);

@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2, Maximize2, Minimize2, X, CheckCircle } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2, Maximize2, Minimize2, X, CheckCircle, Share } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
+import { ContentPublisher } from './content-publisher';
 
 export default function ContentEditor() {
   const [title, setTitle] = useState('');
@@ -34,6 +35,10 @@ export default function ContentEditor() {
   const [isGeneratingBacklinks, setIsGeneratingBacklinks] = useState(false);
   const [insertedLinks, setInsertedLinks] = useState<Set<number>>(new Set());
   const [contentTextareaRef, setContentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  
+  // Publishing states
+  const [showPublishPanel, setShowPublishPanel] = useState(false);
+  const [savedBlogId, setSavedBlogId] = useState<string | null>(null);
   
   // TODO: Re-enable website URL persistence after database migration
   // Load user's website URL on component mount
@@ -567,6 +572,8 @@ export default function ContentEditor() {
           
           if (result.success) {
             console.log('✅ Blog post saved with ID:', result.blogPost?.id);
+            // Store the blog ID for publishing
+            setSavedBlogId(result.blogPost?.id);
             return result;
           } else {
             throw new Error(result.error || 'Unknown error occurred');
@@ -1181,6 +1188,16 @@ export default function ContentEditor() {
                   <Save className="w-4 h-4 mr-1" />
                   {editingPostId ? 'Update' : 'Save'}
                 </Button>
+                {savedBlogId && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowPublishPanel(!showPublishPanel)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-1" />
+                    Publish
+                  </Button>
+                )}
               </div>
             </CardContent>
 
@@ -1900,6 +1917,25 @@ export default function ContentEditor() {
               )}
             </CardContent>
           </Card>
+        </motion.div>
+      )}
+      
+      {/* Publishing Panel */}
+      {showPublishPanel && savedBlogId && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6"
+        >
+          <ContentPublisher 
+            blogId={savedBlogId}
+            title={title}
+            onPublishSuccess={(results) => {
+              console.log('✅ Published successfully:', results);
+              toast.success('🚀 Content published successfully to selected platforms!');
+              setShowPublishPanel(false);
+            }}
+          />
         </motion.div>
       )}
     </div>
