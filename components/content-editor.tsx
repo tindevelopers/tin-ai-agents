@@ -489,6 +489,8 @@ export default function ContentEditor() {
               content: content.trim(),
               keywords: keywordArray,
               status: 'draft',
+              featuredImage: featuredImage,
+              generatedImages: generatedImages,
             }),
           });
 
@@ -613,6 +615,19 @@ export default function ContentEditor() {
       setKeywords(Array.isArray(postData.keywords) ? postData.keywords.join(', ') : '');
       setContent(postData.content || '');
       setEditingPostSource(postData);
+      
+      // Load featured image if it exists
+      if (postData.featured_image) {
+        console.log('🖼️ Loading featured image:', postData.featured_image);
+        setFeaturedImage({
+          url: postData.featured_image,
+          type: 'featured',
+          altText: `Featured image for ${postData.title}`,
+          description: `Featured image for blog post: ${postData.title}`,
+          generated: true,
+          realistic: true
+        });
+      }
       
       // Clear any existing content idea data
       clearContentIdeaData();

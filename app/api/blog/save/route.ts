@@ -20,13 +20,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { id, title, content, keywords, status } = await request.json();
+    const { id, title, content, keywords, status, featuredImage, generatedImages } = await request.json();
     console.log('📝 Received blog data:', { 
       hasId: !!id,
       title: title?.substring(0, 50) + '...', 
       contentLength: content?.length || 0,
       keywordsLength: keywords?.length || 0,
-      status 
+      status,
+      hasFeaturedImage: !!featuredImage,
+      generatedImagesCount: generatedImages?.length || 0
     });
 
     // Check if blog_posts table exists
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
           content: content || '',
           keywords: JSON.stringify(keywords || []),
           status: status || 'draft',
+          featured_image: featuredImage?.url || null,
         },
       });
     } else {
@@ -66,6 +69,7 @@ export async function POST(request: NextRequest) {
           content: content || '',
           keywords: JSON.stringify(keywords || []),
           status: status || 'draft',
+          featured_image: featuredImage?.url || null,
         },
       });
     }
