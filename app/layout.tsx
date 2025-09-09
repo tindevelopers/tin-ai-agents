@@ -5,6 +5,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({ subsets: ['latin'] });
+// Force fresh deployment - cache bust
 
 export const metadata: Metadata = {
   title: 'AI BlogWriter Pro - Intelligent Content Creation',
