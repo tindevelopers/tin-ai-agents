@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2 } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2, Maximize2, Minimize2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
@@ -35,9 +35,52 @@ export default function ContentEditor() {
   const [insertedLinks, setInsertedLinks] = useState<Set<number>>(new Set());
   const [contentTextareaRef, setContentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   
+  // TODO: Re-enable website URL persistence after database migration
+  // Load user's website URL on component mount
+  // useEffect(() => {
+  //   const loadWebsiteUrl = async () => {
+  //     try {
+  //       const response = await fetch('/api/user/website-url');
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         if (data.website_url) {
+  //           setWebsiteUrl(data.website_url);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Failed to load website URL:', error);
+  //     }
+  //   };
+
+  //   loadWebsiteUrl();
+  // }, []);
+
+  // Function to save website URL to user profile (temporarily disabled)
+  const saveWebsiteUrl = async (url: string) => {
+    // TODO: Re-enable after database migration
+    console.log('Website URL would be saved:', url);
+    // try {
+    //   const response = await fetch('/api/user/website-url', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ website_url: url })
+    //   });
+      
+    //   if (response.ok) {
+    //     toast.success('Website URL saved to your profile');
+    //   } else {
+    //     toast.error('Failed to save website URL');
+    //   }
+    // } catch (error) {
+    //   console.error('Failed to save website URL:', error);
+    //   toast.error('Failed to save website URL');
+    // }
+  };
+
   // Image generation states
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [imageSuggestions, setImageSuggestions] = useState<any[]>([]);
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [featuredImage, setFeaturedImage] = useState<any>(null);
@@ -446,6 +489,8 @@ export default function ContentEditor() {
               content: content.trim(),
               keywords: keywordArray,
               status: 'draft',
+              featuredImage: featuredImage,
+              generatedImages: generatedImages,
             }),
           });
 
@@ -571,6 +616,19 @@ export default function ContentEditor() {
       setContent(postData.content || '');
       setEditingPostSource(postData);
       
+      // Load featured image if it exists
+      if (postData.featured_image) {
+        console.log('🖼️ Loading featured image:', postData.featured_image);
+        setFeaturedImage({
+          url: postData.featured_image,
+          type: 'featured',
+          altText: `Featured image for ${postData.title}`,
+          description: `Featured image for blog post: ${postData.title}`,
+          generated: true,
+          realistic: true
+        });
+      }
+      
       // Clear any existing content idea data
       clearContentIdeaData();
       
@@ -646,7 +704,7 @@ export default function ContentEditor() {
   const isEditingMode = editingPostSource && editingPostId && content.trim();
   
   return (
-    <div className="space-y-6 w-full">
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'space-y-6 w-full'}`}>
       {/* Only show generation interface for NEW content creation */}
       {!isEditingMode && (
         <motion.div 
@@ -813,7 +871,12 @@ export default function ContentEditor() {
                 </label>
                 <Input
                   value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                   placeholder="https://yourwebsite.com"
                   className="w-full"
                 />
@@ -920,7 +983,12 @@ export default function ContentEditor() {
                     </label>
                     <Input
                       value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                       placeholder="https://yourwebsite.com"
                       className="w-full"
                     />
@@ -1055,6 +1123,26 @@ export default function ContentEditor() {
                     Word count: {content.split(' ').filter(word => word.length > 0).length} words
                   </CardDescription>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </Button>
+                  {isFullscreen && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsFullscreen(false)}
+                      title="Close Fullscreen"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1085,7 +1173,7 @@ export default function ContentEditor() {
                     setContent(e.target.value);
                     dispatchContentChanged();
                   }}
-                  className="min-h-[500px] font-mono text-sm transition-all duration-300"
+                  className={`${isFullscreen ? 'min-h-[80vh]' : 'min-h-[500px]'} font-mono text-sm transition-all duration-300 ${isFullscreen ? 'text-base' : ''}`}
                   placeholder={isEditingMode ? "Edit your content here..." : "Generated content will appear here..."}
                 />
               )}
@@ -1153,7 +1241,12 @@ export default function ContentEditor() {
                   </p>
                   <Input
                     value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                     placeholder="https://yourwebsite.com"
                     className="w-full"
                   />

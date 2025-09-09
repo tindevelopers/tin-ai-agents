@@ -95,27 +95,9 @@ This is part of a professional blog post requiring natural, realistic imagery th
           }
           
         } catch (assetError) {
-          console.error(`⚠️ StabilityAI generation failed for image ${i + 1}, using fallback:`, assetError);
-          
-          // Fallback to mock response if real generation fails
-          const timestamp = Date.now();
-          const fallbackImageResult = {
-            success: true,
-            url: `/generated-images/fallback-${suggestion.type}-${timestamp}-${i + 1}.jpg`,
-            filename: `fallback-${suggestion.type}-${timestamp}-${i + 1}.jpg`,
-            type: suggestion.type,
-            altText: suggestion.altText,
-            placement: suggestion.placement,
-            description: suggestion.description || suggestion.imageTitle,
-            imageTitle: suggestion.imageTitle,
-            imageSlug: suggestion.imageSlug,
-            aspectRatio: aspectRatio,
-            generated: false,
-            fallback: true,
-            error: assetError instanceof Error ? assetError.message : 'Unknown error'
-          };
-          
-          generatedImages.push(fallbackImageResult);
+          console.error(`❌ Image generation failed for image ${i + 1}:`, assetError);
+          // Skip this image - don't add fallback URLs that won't work
+          console.log(`⚠️ Skipping image ${i + 1} due to generation failure`);
         }
         
       } catch (error) {

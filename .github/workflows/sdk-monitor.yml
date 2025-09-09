@@ -93,9 +93,11 @@ jobs:
           git config --global user.email 'noreply@github.com'
       
       - name: Create update branch
+        id: create-branch
         run: |
           BRANCH_NAME="sdk-update-$(date +%Y%m%d-%H%M%S)"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           git checkout -b "$BRANCH_NAME"
       
       - name: Update SDK dependency
@@ -194,7 +196,7 @@ jobs:
       - name: Create Pull Request
         uses: repo-sync/pull-request@v2
         with:
-          source_branch: ${{ env.BRANCH_NAME }}
+          source_branch: ${{ steps.create-branch.outputs.branch-name }}
           destination_branch: 'develop'
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pr_title: "🤖 Auto-update: AI Content Publisher SDK"

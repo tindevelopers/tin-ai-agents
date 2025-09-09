@@ -6,10 +6,11 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, X } from 'lucide-react';
+import { FileText, Calendar, Tag, Eye, Edit, Trash2, Plus, X, ArrowRight, CheckCircle, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost } from '@/lib/types';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 
 // Dynamic import to prevent SSR issues
 const ContentEditor = dynamic(() => import('@/components/content-editor'), { 
@@ -64,9 +65,25 @@ export default function BlogList() {
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'published' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-yellow-100 text-yellow-800';
+    switch (status) {
+      case 'published':
+        return 'bg-green-100 text-green-800';
+      case 'ready_to_publish':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const getStatusDisplayName = (status: string) => {
+    switch (status) {
+      case 'ready_to_publish':
+        return 'Ready to Publish';
+      case 'published':
+        return 'Published';
+      default:
+        return 'Draft';
+    }
   };
 
   const viewPost = (post: BlogPost) => {
@@ -125,6 +142,84 @@ export default function BlogList() {
     } catch (error) {
       console.error('❌ Error preparing post for modal editing:', error);
       toast.error('Failed to load post for editing. Please try again.');
+    }
+  };
+
+  const updatePostStatus = async (postId: string, newStatus: 'draft' | 'ready_to_publish' | 'published') => {
+    try {
+      const response = await fetch('/api/blog/update-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: postId, status: newStatus }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update post status');
+      }
+
+      if (result.success) {
+        // Update the local state
+        setBlogPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, status: newStatus, updatedAt: new Date() }
+              : post
+          )
+        );
+        
+        toast.success(`✅ Post status updated to ${getStatusDisplayName(newStatus)}!`);
+      }
+    } catch (error) {
+      console.error('❌ Error updating post status:', error);
+      toast.error('Failed to update post status. Please try again.');
+    }
+  };
+
+  const getNextStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'draft':
+        return 'ready_to_publish';
+      case 'ready_to_publish':
+        return 'published';
+      default:
+        return 'draft';
+    }
+  };
+
+  const getPreviousStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'published':
+        return 'ready_to_publish';
+      case 'ready_to_publish':
+        return 'draft';
+      default:
+        return 'draft';
+    }
+  };
+
+  const getStageProgressText = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'draft':
+        return 'Mark Ready to Publish';
+      case 'ready_to_publish':
+        return 'Publish Now';
+      case 'published':
+        return 'Move to Draft';
+      default:
+        return 'Next Stage';
+    }
+  };
+
+  const getStageRegressText = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'published':
+        return 'Unpublish';
+      case 'ready_to_publish':
+        return 'Back to Draft';
+      default:
+        return 'Previous Stage';
     }
   };
 
@@ -270,7 +365,7 @@ export default function BlogList() {
                           {post.title}
                         </CardTitle>
                         <Badge className={`${getStatusColor(post.status)} font-medium px-3 py-1 text-xs uppercase tracking-wide`}>
-                          {post.status}
+                          {getStatusDisplayName(post.status)}
                         </Badge>
                       </div>
                       <CardDescription className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
@@ -294,6 +389,41 @@ export default function BlogList() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 min-w-[150px]">
+                      {/* Stage Management Buttons */}
+                      <div className="flex gap-1">
+                        {post.status !== 'published' && (
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            onClick={() => updatePostStatus(post.id, getNextStatus(post.status))}
+                            className={`flex-1 text-xs ${
+                              post.status === 'ready_to_publish' 
+                                ? 'bg-green-600 hover:bg-green-700' 
+                                : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
+                          >
+                            {post.status === 'ready_to_publish' ? (
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                            ) : (
+                              <ArrowRight className="w-3 h-3 mr-1" />
+                            )}
+                            {getStageProgressText(post.status)}
+                          </Button>
+                        )}
+                        {post.status !== 'draft' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => updatePostStatus(post.id, getPreviousStatus(post.status))}
+                            className="flex-1 text-xs text-gray-600 hover:text-gray-700"
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1" />
+                            {getStageRegressText(post.status)}
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Regular Action Buttons */}
                       <Button 
                         variant="default" 
                         size="sm"
@@ -367,7 +497,7 @@ export default function BlogList() {
                       {selectedPost.content?.split(' ')?.length || 0} words
                     </div>
                     <Badge className={getStatusColor(selectedPost.status)}>
-                      {selectedPost.status}
+                      {getStatusDisplayName(selectedPost.status)}
                     </Badge>
                   </div>
                 </div>
@@ -378,7 +508,22 @@ export default function BlogList() {
             </div>
             <div className="p-6 overflow-y-auto max-h-[70vh]">
               <div className="prose max-w-none">
-                <div className="whitespace-pre-wrap">{selectedPost.content}</div>
+                <ReactMarkdown
+                  components={{
+                    img: ({ node, ...props }) => (
+                      <img
+                        {...props}
+                        className="max-w-full h-auto rounded-lg border shadow-sm"
+                        style={{ maxHeight: '400px', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDQwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzEgOTFMMjAwIDEyMEwyMjkgOTFMMjgwIDE0MlYxODBIMjgwVjE4MEgyODBWMTgwSDI4MFYxODBIMTIwVjE0MkwxNzEgOTFaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjkwIiByPSIxMCIgZmlsbD0iIzlDQTNBRiIvPgo8dGV4dCB4PSIyMDAiIHk9IjIxMCIgZmlsbD0iIzlDQTNBRiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlIExvYWRpbmcuLi48L3RleHQ+Cjwvc3ZnPgo=';
+                        }}
+                      />
+                    )
+                  }}
+                >
+                  {selectedPost.content}
+                </ReactMarkdown>
               </div>
               {selectedPost.keywords && selectedPost.keywords.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
@@ -402,7 +547,7 @@ export default function BlogList() {
 
       {/* Edit Post Modal with Scrollable Content */}
       {showEditModal && editingModalPost && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-hidden">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-6xl w-full h-[95vh] flex flex-col relative">
             {/* Modal Header - Fixed */}
             <div className="flex-shrink-0 p-6 border-b border-gray-200 bg-white relative z-10">
@@ -424,8 +569,8 @@ export default function BlogList() {
             </div>
             
             {/* Modal Content - Scrollable with proper height calculation */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden modal-content-scroll" style={{ maxHeight: 'calc(95vh - 120px)' }}>
-              <div className="p-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden modal-content-scroll min-h-0">
+              <div className="p-6 h-full">
                 <ContentEditor />
               </div>
             </div>
