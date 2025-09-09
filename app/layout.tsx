@@ -9,6 +9,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AI BlogWriter Pro - Intelligent Content Creation',
   description: 'Create high-quality blog content with AI-powered keyword research, clustering, and content generation tools.',
+  icons: {
+    icon: '/favicon.svg',
+  },
+  manifest: '/site.webmanifest',
+  themeColor: '#7C3AED',
 };
 
 export default function RootLayout({
