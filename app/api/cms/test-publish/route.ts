@@ -127,9 +127,9 @@ If you can see this post in your Webflow CMS, the integration is working correct
               external_id: result.external_id,
               published_url: result.published_url,
               status: 'published',
-              content_hash: result.content_hash,
+              sync_hash: result.content_hash,
               external_metadata: result.metadata,
-              published_at: new Date()
+              last_synced_at: new Date()
             }
           });
 
@@ -149,7 +149,7 @@ If you can see this post in your Webflow CMS, the integration is working correct
           result: {
             external_id: result.external_id,
             published_url: result.published_url,
-            content_hash: result.content_hash,
+            sync_hash: result.content_hash,
             metadata: result.metadata,
             blog_post: {
               id: blogPost.id,
