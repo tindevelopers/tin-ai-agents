@@ -321,34 +321,34 @@ export default function SocialMediaConfig() {
 
   if (loading) {
     return (
-      <div className=\"flex items-center justify-center p-8\">
-        <div className=\"animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600\"></div>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className=\"space-y-6\">
+    <div className="space-y-6">
       {/* Header */}
-      <div className=\"flex items-center justify-between\">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Social Media Configurations
           </h2>
-          <p className=\"text-gray-600 dark:text-gray-400 mt-1\">
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage your social media platform connections for automated publishing
           </p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm} className=\"flex items-center gap-2\">
-              <Plus className=\"w-4 h-4\" />
+            <Button onClick={resetForm} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
               Add Platform
             </Button>
           </DialogTrigger>
           
-          <DialogContent className=\"max-w-2xl max-h-[90vh] overflow-y-auto\">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingConfig ? 'Edit' : 'Add'} Social Media Configuration
@@ -361,12 +361,12 @@ export default function SocialMediaConfig() {
               </DialogDescription>
             </DialogHeader>
             
-            <div className=\"space-y-6\">
+            <div className="space-y-6">
               {/* Platform Selection (only for new configs) */}
               {!editingConfig && (
                 <div>
-                  <Label className=\"text-sm font-medium mb-3 block\">Select Platform</Label>
-                  <div className=\"grid grid-cols-2 gap-3\">
+                  <Label className="text-sm font-medium mb-3 block">Select Platform</Label>
+                  <div className="grid grid-cols-2 gap-3">
                     {Object.entries(PLATFORM_CONFIGS).map(([key, config]) => {
                       const Icon = config.icon;
                       return (
@@ -379,13 +379,13 @@ export default function SocialMediaConfig() {
                               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                           }`}
                         >
-                          <div className=\"flex items-center gap-3\">
+                          <div className="flex items-center gap-3">
                             <div className={`p-2 rounded-lg ${config.color} text-white`}>
-                              <Icon className=\"w-5 h-5\" />
+                              <Icon className="w-5 h-5" />
                             </div>
-                            <div className=\"text-left\">
-                              <div className=\"font-medium\">{config.name}</div>
-                              <div className=\"text-sm text-gray-500 dark:text-gray-400\">
+                            <div className="text-left">
+                              <div className="font-medium">{config.name}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
                                 {config.description}
                               </div>
                             </div>
@@ -398,38 +398,38 @@ export default function SocialMediaConfig() {
               )}
 
               {/* Configuration Form */}
-              <Tabs defaultValue=\"basic\" className=\"w-full\">
-                <TabsList className=\"grid w-full grid-cols-2\">
-                  <TabsTrigger value=\"basic\">Basic Info</TabsTrigger>
-                  <TabsTrigger value=\"credentials\">API Credentials</TabsTrigger>
+              <Tabs defaultValue="basic" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                  <TabsTrigger value="credentials">API Credentials</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value=\"basic\" className=\"space-y-4\">
+                <TabsContent value="basic" className="space-y-4">
                   <div>
-                    <Label htmlFor=\"name\">Configuration Name *</Label>
+                    <Label htmlFor="name">Configuration Name *</Label>
                     <Input
-                      id=\"name\"
-                      placeholder=\"e.g., My LinkedIn Account\"
+                      id="name"
+                      placeholder="e.g., My LinkedIn Account"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor=\"handle\">Account Handle</Label>
+                    <Label htmlFor="handle">Account Handle</Label>
                     <Input
-                      id=\"handle\"
-                      placeholder=\"@username or profile identifier\"
+                      id="handle"
+                      placeholder="@username or profile identifier"
                       value={formData.account_handle}
                       onChange={(e) => setFormData(prev => ({ ...prev, account_handle: e.target.value }))}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor=\"hashtags\">Default Hashtags</Label>
+                    <Label htmlFor="hashtags">Default Hashtags</Label>
                     <Input
-                      id=\"hashtags\"
-                      placeholder=\"#ai #content #blog\"
+                      id="hashtags"
+                      placeholder="#ai #content #blog"
                       value={formData.publishing_rules.auto_hashtags}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
@@ -439,10 +439,10 @@ export default function SocialMediaConfig() {
                   </div>
 
                   <div>
-                    <Label htmlFor=\"message\">Default Message Template</Label>
+                    <Label htmlFor="message">Default Message Template</Label>
                     <Textarea
-                      id=\"message\"
-                      placeholder=\"Check out my latest blog post: {title}\"
+                      id="message"
+                      placeholder="Check out my latest blog post: {title}"
                       value={formData.publishing_rules.default_message}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
@@ -452,13 +452,13 @@ export default function SocialMediaConfig() {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value=\"credentials\" className=\"space-y-4\">
+                <TabsContent value="credentials" className="space-y-4">
                   {PLATFORM_CONFIGS[selectedPlatform as keyof typeof PLATFORM_CONFIGS]?.fields.map((field) => (
                     <div key={field.key}>
                       <Label htmlFor={field.key}>
                         {field.label} {field.required && '*'}
                       </Label>
-                      <div className=\"relative\">
+                      <div className="relative">
                         <Input
                           id={field.key}
                           type={field.type === 'password' && !showCredentials[field.key] ? 'password' : 'text'}
@@ -471,17 +471,17 @@ export default function SocialMediaConfig() {
                         />
                         {field.type === 'password' && (
                           <button
-                            type=\"button\"
+                            type="button"
                             onClick={() => setShowCredentials(prev => ({
                               ...prev,
                               [field.key]: !prev[field.key]
                             }))}
-                            className=\"absolute right-3 top-1/2 transform -translate-y-1/2\"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
                           >
                             {showCredentials[field.key] ? (
-                              <EyeOff className=\"w-4 h-4 text-gray-400\" />
+                              <EyeOff className="w-4 h-4 text-gray-400" />
                             ) : (
-                              <Eye className=\"w-4 h-4 text-gray-400\" />
+                              <Eye className="w-4 h-4 text-gray-400" />
                             )}
                           </button>
                         )}
@@ -489,11 +489,11 @@ export default function SocialMediaConfig() {
                     </div>
                   ))}
                   
-                  <div className=\"bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg\">
-                    <div className=\"flex items-start gap-2\">
-                      <AlertCircle className=\"w-5 h-5 text-blue-600 mt-0.5\" />
-                      <div className=\"text-sm text-blue-800 dark:text-blue-200\">
-                        <p className=\"font-medium mb-1\">API Setup Instructions:</p>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div className="text-sm text-blue-800 dark:text-blue-200">
+                        <p className="font-medium mb-1">API Setup Instructions:</p>
                         <p>
                           {PLATFORM_CONFIGS[selectedPlatform as keyof typeof PLATFORM_CONFIGS]?.description}
                           Visit the platform's developer documentation to obtain your API credentials.
@@ -505,9 +505,9 @@ export default function SocialMediaConfig() {
               </Tabs>
 
               {/* Action Buttons */}
-              <div className=\"flex justify-end gap-3 pt-4 border-t\">
+              <div className="flex justify-end gap-3 pt-4 border-t">
                 <Button
-                  variant=\"outline\"
+                  variant="outline"
                   onClick={() => {
                     setIsDialogOpen(false);
                     resetForm();
@@ -517,9 +517,9 @@ export default function SocialMediaConfig() {
                 </Button>
                 <Button
                   onClick={editingConfig ? handleUpdateConfig : handleCreateConfig}
-                  className=\"flex items-center gap-2\"
+                  className="flex items-center gap-2"
                 >
-                  <Save className=\"w-4 h-4\" />
+                  <Save className="w-4 h-4" />
                   {editingConfig ? 'Update' : 'Create'} Configuration
                 </Button>
               </div>
@@ -531,49 +531,49 @@ export default function SocialMediaConfig() {
       {/* Configurations List */}
       {configs.length === 0 ? (
         <Card>
-          <CardContent className=\"flex flex-col items-center justify-center py-12\">
-            <Settings className=\"w-12 h-12 text-gray-400 mb-4\" />
-            <h3 className=\"text-lg font-medium text-gray-900 dark:text-gray-100 mb-2\">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Settings className="w-12 h-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               No Social Media Configurations
             </h3>
-            <p className=\"text-gray-600 dark:text-gray-400 text-center mb-6\">
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
               Connect your social media accounts to start publishing your blog posts automatically.
             </p>
-            <Button onClick={() => setIsDialogOpen(true)} className=\"flex items-center gap-2\">
-              <Plus className=\"w-4 h-4\" />
+            <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
               Add Your First Platform
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className=\"grid gap-4\">
+        <div className="grid gap-4">
           {configs.map((config) => {
             const Icon = getPlatformIcon(config.platform_type);
             const platformColor = getPlatformColor(config.platform_type);
             const platformName = PLATFORM_CONFIGS[config.platform_type as keyof typeof PLATFORM_CONFIGS]?.name || config.platform_type;
             
             return (
-              <Card key={config.id} className=\"hover:shadow-md transition-shadow\">
-                <CardContent className=\"p-6\">
-                  <div className=\"flex items-center justify-between\">
-                    <div className=\"flex items-center gap-4\">
+              <Card key={config.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
                       <div className={`p-3 rounded-lg ${platformColor} text-white`}>
-                        <Icon className=\"w-6 h-6\" />
+                        <Icon className="w-6 h-6" />
                       </div>
                       
                       <div>
-                        <h3 className=\"font-semibold text-gray-900 dark:text-gray-100\">
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                           {config.name}
                         </h3>
-                        <div className=\"flex items-center gap-2 mt-1\">
-                          <Badge variant=\"secondary\">{platformName}</Badge>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary">{platformName}</Badge>
                           {config.account_handle && (
-                            <span className=\"text-sm text-gray-600 dark:text-gray-400\">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
                               {config.account_handle}
                             </span>
                           )}
                         </div>
-                        <p className=\"text-sm text-gray-500 dark:text-gray-400 mt-1\">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           Created {new Date(config.created_at).toLocaleDateString()}
                           {config.last_used_at && (
                             <> • Last used {new Date(config.last_used_at).toLocaleDateString()}</>
@@ -582,32 +582,32 @@ export default function SocialMediaConfig() {
                       </div>
                     </div>
                     
-                    <div className=\"flex items-center gap-3\">
-                      <div className=\"flex items-center gap-2\">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <Switch
                           checked={config.is_active}
                           onCheckedChange={(checked) => handleToggleActive(config.id, checked)}
                         />
-                        <span className=\"text-sm text-gray-600 dark:text-gray-400\">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {config.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                       
-                      <div className=\"flex items-center gap-1\">
+                      <div className="flex items-center gap-1">
                         <Button
-                          variant=\"ghost\"
-                          size=\"sm\"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleEditConfig(config)}
                         >
-                          <Edit className=\"w-4 h-4\" />
+                          <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          variant=\"ghost\"
-                          size=\"sm\"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDeleteConfig(config.id)}
-                          className=\"text-red-600 hover:text-red-700\"
+                          className="text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className=\"w-4 h-4\" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
