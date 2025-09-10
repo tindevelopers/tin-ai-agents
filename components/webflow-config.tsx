@@ -512,7 +512,7 @@ export default function WebflowConfig() {
                       id="site_id"
                       name="site_id"
                       value={formData.site_id}
-                      onChange={handleInputChange}
+                      onChange={(e) => setFormData(prev => ({ ...prev, site_id: e.target.value }))}
                       placeholder="e.g., 507f1f77bcf86cd799439011"
                       required
                     />
