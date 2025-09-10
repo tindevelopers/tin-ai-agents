@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import BreadcrumbNavigation, { useBreadcrumb } from '@/components/breadcrumb-navigation';
+import BlogWriterLayout from '@/components/layout/BlogWriterLayout';
+import { SessionProvider } from 'next-auth/react';
 import { 
   PenTool, 
   Search, 
@@ -171,100 +173,79 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
-                <PenTool className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">AI BlogWriter Pro</h1>
-                <p className="text-sm text-gray-600">Intelligent Content Creation</p>
-              </div>
+    <SessionProvider>
+      <BlogWriterLayout>
+        {/* Navigation Tabs */}
+        <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="px-6 py-4">
+            <div className="flex space-x-8 overflow-x-auto">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    data-tab={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id as TabType);
+                      // Reset skipWorkflow when navigating normally
+                      if (tab.id === 'create-post') {
+                        setSkipWorkflow(false);
+                        // Clear any existing edit data when starting fresh
+                        localStorage.removeItem('editPostData');
+                        localStorage.removeItem('contentIdeaData');
+                        localStorage.removeItem('selectedKeywordsForIdeas');
+                      }
+                    }}
+                    className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
-              AI-Powered
-            </Badge>
           </div>
         </div>
-      </header>
 
-      {/* Navigation Tabs */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 overflow-x-auto">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  data-tab={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id as TabType);
-                    // Reset skipWorkflow when navigating normally
-                    if (tab.id === 'create-post') {
-                      setSkipWorkflow(false);
-                      // Clear any existing edit data when starting fresh
-                      localStorage.removeItem('editPostData');
-                      localStorage.removeItem('contentIdeaData');
-                      localStorage.removeItem('selectedKeywordsForIdeas');
-                    }
-                  }}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+        {/* Breadcrumb Navigation */}
+        {activeTab !== 'dashboard' && (
+          <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-3">
+              <BreadcrumbNavigation
+                items={buildBreadcrumb(
+                  skipWorkflow && activeTab === 'create-post' ? 'editing' as TabType : activeTab,
+                  editingPostTitle,
+                  () => setActiveTab('dashboard'),
+                  () => setActiveTab('my-posts'),
+                  hasUnsavedChanges
+                )}
+              />
+            </div>
           </div>
-        </div>
-      </nav>
+        )}
 
-      {/* Breadcrumb Navigation */}
-      {activeTab !== 'dashboard' && (
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <BreadcrumbNavigation
-              items={buildBreadcrumb(
-                skipWorkflow && activeTab === 'create-post' ? 'editing' as TabType : activeTab,
-                editingPostTitle,
-                () => setActiveTab('dashboard'),
-                () => setActiveTab('my-posts'),
-                hasUnsavedChanges
-              )}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div>
+        {/* Main Content */}
+        <div className="p-6">
           {renderTabContent()}
         </div>
-      </main>
 
-      {/* New Post Modal */}
-      {showNewPostModal && (
-        <NewPostModal 
-          step={newPostStep}
-          onStepChange={setNewPostStep}
-          onClose={() => {
-            setShowNewPostModal(false);
-            setNewPostStep('keywords');
-          }}
-        />
-      )}
-    </div>
+        {/* New Post Modal */}
+        {showNewPostModal && (
+          <NewPostModal 
+            step={newPostStep}
+            onStepChange={setNewPostStep}
+            onClose={() => {
+              setShowNewPostModal(false);
+              setNewPostStep('keywords');
+            }}
+          />
+        )}
+      </BlogWriterLayout>
+    </SessionProvider>
   );
 }
 

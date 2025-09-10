@@ -2,7 +2,10 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import '../styles/sidebar.css';
 import { ThemeProvider } from '@/components/theme-provider';
+import { SidebarProvider } from '@/contexts/SidebarContext';
+import { ThemeProvider as CustomThemeProvider } from '@/contexts/ThemeContext';
 
 const inter = Inter({ subsets: ['latin'] });
 // Force fresh deployment - cache bust
@@ -26,7 +29,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning={true}>
         <ThemeProvider attribute="class" defaultTheme="light">
-          {children}
+          <CustomThemeProvider>
+            <SidebarProvider>
+              {children}
+            </SidebarProvider>
+          </CustomThemeProvider>
         </ThemeProvider>
       </body>
     </html>
