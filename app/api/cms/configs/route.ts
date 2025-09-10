@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const platformType = searchParams.get('platform_type')
+    const platformType = searchParams.get('platform_type') || searchParams.get('platform')
 
     const where: any = { user_id: session.user.id }
     if (platformType) {

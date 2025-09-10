@@ -76,6 +76,7 @@ const analyticsItems: NavItem[] = [
     name: "Settings",
     subItems: [
       { name: "Social Media", path: "/settings/social", pro: false },
+      { name: "Webflow CMS", path: "/settings/webflow", pro: false },
       { name: "API Keys", path: "/settings/api", pro: false },
       { name: "Preferences", path: "/settings/preferences", pro: false },
     ],
