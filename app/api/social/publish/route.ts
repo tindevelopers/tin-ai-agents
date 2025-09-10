@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
+import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
 import crypto from 'crypto';
 
 export const runtime = 'nodejs';
@@ -112,10 +113,38 @@ export async function POST(request: NextRequest) {
             queue_id: queueItem.id,
           });
         } else {
-          // Publish immediately
+          // Publish immediately using AI Content Publisher SDK
           try {
-            // Here we would integrate with the AI Content Publisher SDK
-            // For now, we'll create a publication record and mark it as pending
+            // Initialize the AI Content Publisher
+            const publisher = new AIContentPublisher();
+            
+            // Configure the social media platform
+            await publisher.configureSocialMedia(config.platform_type, {
+              platform: config.platform_type as any,
+              credentials
+            });
+
+            // Transform blog post to AIContent format
+            const content: AIContent = {
+              type: 'social-post',
+              title: blogPost.title,
+              content: custom_content?.[config.platform_type] || blogPost.excerpt || blogPost.content,
+              excerpt: blogPost.excerpt || undefined,
+              tags: Array.isArray(blogPost.tags) ? blogPost.tags : [],
+              status: 'published',
+              socialPlatforms: [config.platform_type],
+              socialContent: custom_content || {},
+              hashtags: Array.isArray(blogPost.tags) ? blogPost.tags : [],
+              images: blogPost.featured_image ? [{
+                url: blogPost.featured_image,
+                alt: blogPost.title
+              }] : undefined
+            };
+
+            // Test content compatibility first
+            const testResult = await publisher.testContentForPlatform(content, config.platform_type);
+            
+            // Create publication record
             const publication = await prisma.socialPublication.create({
               data: {
                 blog_id,
@@ -125,29 +154,72 @@ export async function POST(request: NextRequest) {
               },
             });
 
-            // TODO: Integrate with AI Content Publisher SDK
-            // const publisher = new AIContentPublisher();
-            // await publisher.configure(config.platform_type, credentials);
-            // const result = await publisher.publish(contentData, config.platform_type);
+            if (!testResult.isCompatible) {
+              // Mark as failed due to compatibility issues
+              await prisma.socialPublication.update({
+                where: { id: publication.id },
+                data: {
+                  status: 'failed',
+                  error_message: `Content not compatible: ${testResult.issues.join(', ')}`
+                },
+              });
 
-            // For now, simulate successful publishing
-            await prisma.socialPublication.update({
-              where: { id: publication.id },
-              data: {
+              results.push({
+                platform: config.platform_type,
+                config_name: config.name,
+                status: 'failed',
+                error: `Content not compatible: ${testResult.issues.join(', ')}`,
+                suggestions: testResult.suggestions,
+                publication_id: publication.id,
+              });
+              continue;
+            }
+
+            // Publish the content
+            const result = await publisher.publish(content, config.platform_type);
+
+            if (result.success) {
+              // Update publication record with success
+              await prisma.socialPublication.update({
+                where: { id: publication.id },
+                data: {
+                  status: 'published',
+                  published_at: new Date(),
+                  published_url: result.url || '',
+                  external_id: result.contentId || '',
+                  metadata: result.metadata
+                },
+              });
+
+              results.push({
+                platform: config.platform_type,
+                config_name: config.name,
                 status: 'published',
-                published_at: new Date(),
-                published_url: `https://${config.platform_type}.com/post/simulated`,
-                external_id: `sim_${Date.now()}`,
-              },
-            });
+                published_url: result.url,
+                external_id: result.contentId,
+                publication_id: publication.id,
+                test_score: testResult.score,
+                suggestions: testResult.suggestions
+              });
+            } else {
+              // Update publication record with failure
+              await prisma.socialPublication.update({
+                where: { id: publication.id },
+                data: {
+                  status: 'failed',
+                  error_message: result.message
+                },
+              });
 
-            results.push({
-              platform: config.platform_type,
-              config_name: config.name,
-              status: 'published',
-              published_url: `https://${config.platform_type}.com/post/simulated`,
-              publication_id: publication.id,
-            });
+              results.push({
+                platform: config.platform_type,
+                config_name: config.name,
+                status: 'failed',
+                error: result.message,
+                errors: result.errors,
+                publication_id: publication.id,
+              });
+            }
           } catch (publishError) {
             console.error(`Error publishing to ${config.platform_type}:`, publishError);
             

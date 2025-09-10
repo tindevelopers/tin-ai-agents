@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
-import { WebflowPublisher } from '@/lib/cms-publishers/webflow';
+import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,42 +92,72 @@ If you can see this post in your Webflow CMS, the integration is working correct
       };
     }
 
-    // Initialize the appropriate publisher
+    // Initialize the AI Content Publisher
     if (cmsConfig.platform_type === 'webflow') {
       try {
-        const publisher = new WebflowPublisher({
-          api_credentials: cmsConfig.api_credentials as string,
-          site_id: cmsConfig.site_id || undefined,
-          collection_id: cmsConfig.collection_id || undefined,
-          field_mappings: cmsConfig.field_mappings as Record<string, string>,
-          publishing_rules: cmsConfig.publishing_rules as Record<string, any>
-        });
+        // Parse API credentials
+        const credentials = JSON.parse(cmsConfig.api_credentials as string);
+        
+        // Initialize publisher and configure Webflow
+        const publisher = new AIContentPublisher();
+        await publisher.configureWebflow(
+          credentials.api_token,
+          cmsConfig.site_id!,
+          cmsConfig.collection_id || undefined
+        );
 
-        // Publish the blog post
-        const result = await publisher.publish({
-          id: blogPost.id,
+        // Transform blog post to AIContent format
+        const content: AIContent = {
+          type: 'blog',
           title: blogPost.title,
           content: blogPost.content,
-          slug: blogPost.slug || undefined,
-          meta_description: blogPost.meta_description || undefined,
-          featured_image: blogPost.featured_image || undefined,
-          author: blogPost.author || undefined,
-          category: blogPost.category || undefined,
+          excerpt: blogPost.excerpt || blogPost.meta_description || undefined,
           tags: Array.isArray(blogPost.tags) ? blogPost.tags : [],
-          seo_title: blogPost.seo_title || undefined,
-          excerpt: blogPost.excerpt || undefined
-        });
+          categories: blogPost.category ? [blogPost.category] : [],
+          status: 'published',
+          seo: {
+            metaTitle: blogPost.seo_title || blogPost.title,
+            metaDescription: blogPost.meta_description || blogPost.excerpt || undefined
+          },
+          images: blogPost.featured_image ? [{
+            url: blogPost.featured_image,
+            alt: blogPost.title
+          }] : undefined
+        };
+
+        // Test content before publishing
+        const testResult = await publisher.testContentForPlatform(content, 'webflow');
+        if (!testResult.isCompatible) {
+          return NextResponse.json({
+            success: false,
+            message: 'Content not compatible with Webflow',
+            errors: testResult.issues,
+            warnings: testResult.suggestions
+          });
+        }
+
+        // Publish the blog post
+        const result = await publisher.publish(content, 'webflow');
+
+        // Check if publishing was successful
+        if (!result.success) {
+          return NextResponse.json({
+            success: false,
+            message: result.message,
+            errors: result.errors
+          });
+        }
 
         // If this was a real blog post, record the publication
-        if (blog_post_id) {
+        if (blog_post_id && result.contentId) {
           await prisma.cmsPublication.create({
             data: {
               blog_id: blogPost.id,
               cms_config_id: cmsConfig.id,
-              external_id: result.external_id,
-              published_url: result.published_url,
+              external_id: result.contentId,
+              published_url: result.url || '',
               status: 'published',
-              sync_hash: result.content_hash,
+              sync_hash: JSON.stringify(result.metadata),
               external_metadata: result.metadata,
               last_synced_at: new Date()
             }
@@ -145,17 +175,18 @@ If you can see this post in your Webflow CMS, the integration is working correct
 
         return NextResponse.json({
           success: true,
-          message: 'Test blog post published successfully to Webflow',
+          message: result.message,
           result: {
-            external_id: result.external_id,
-            published_url: result.published_url,
-            sync_hash: result.content_hash,
+            external_id: result.contentId,
+            published_url: result.url,
+            sync_hash: JSON.stringify(result.metadata),
             metadata: result.metadata,
             blog_post: {
               id: blogPost.id,
               title: blogPost.title,
               slug: blogPost.slug
-            }
+            },
+            test_results: testResult
           }
         });
 

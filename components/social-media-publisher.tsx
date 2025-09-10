@@ -137,6 +137,78 @@ export default function SocialMediaPublisher({
     );
   };
 
+  const handleTestContent = async () => {
+    if (selectedConfigs.length === 0) {
+      toast.error('Please select at least one platform to test');
+      return;
+    }
+
+    setPublishing(true);
+    setPublishResults([]);
+
+    try {
+      // Get platform names from selected configs
+      const platformNames = configs
+        .filter(config => selectedConfigs.includes(config.id))
+        .map(config => config.platform_type);
+
+      const response = await fetch('/api/content/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: {
+            type: 'social-post',
+            title: blogTitle,
+            content: customContent[platformNames[0]] || blogContent,
+            excerpt: blogExcerpt,
+            tags: blogContent.match(/#\w+/g)?.map(tag => tag.substring(1)) || [],
+            images: featuredImage ? [{ url: featuredImage, alt: blogTitle }] : undefined,
+            hashtags: blogContent.match(/#\w+/g)?.map(tag => tag.substring(1)) || []
+          },
+          platforms: platformNames
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success) {
+          // Transform test results to match publishResults format
+          const testResults = result.results.map((r: any) => ({
+            platform: r.platform,
+            status: r.isCompatible ? 'tested' : 'incompatible',
+            test_score: r.score,
+            issues: r.issues,
+            suggestions: r.suggestions,
+            config_name: configs.find(c => c.platform_type === r.platform)?.name || r.platform
+          }));
+          
+          setPublishResults(testResults);
+          setShowResults(true);
+          
+          const compatibleCount = result.summary.compatible_platforms;
+          const avgScore = result.summary.average_score;
+          
+          if (result.recommendations.ready_to_publish) {
+            toast.success(`Content tested successfully! ${compatibleCount} platforms compatible. Average score: ${avgScore}/100`);
+          } else {
+            toast.warning(`Content needs optimization. ${compatibleCount} platforms compatible. Average score: ${avgScore}/100`);
+          }
+        } else {
+          toast.error(result.error || 'Content testing failed');
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to test content');
+      }
+    } catch (error) {
+      console.error('Error testing content:', error);
+      toast.error('Failed to test content');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const handlePublish = async () => {
     if (selectedConfigs.length === 0) {
       toast.error('Please select at least one platform to publish to');
@@ -175,6 +247,13 @@ export default function SocialMediaPublisher({
         
         if (data.success) {
           toast.success(data.message || 'Published successfully!');
+          
+          // Show test scores if available
+          const withScores = data.results.filter((r: any) => r.test_score);
+          if (withScores.length > 0) {
+            const avgScore = withScores.reduce((sum: number, r: any) => sum + r.test_score, 0) / withScores.length;
+            toast.info(`Content quality score: ${Math.round(avgScore)}/100`);
+          }
         } else {
           toast.error(data.message || 'Some publications failed');
         }
@@ -240,10 +319,15 @@ export default function SocialMediaPublisher({
               {publishResults.map((result, index) => {
                 const Icon = PLATFORM_ICONS[result.platform as keyof typeof PLATFORM_ICONS] || Globe;
                 const isSuccess = result.status === 'published' || result.status === 'scheduled';
+                const isTested = result.status === 'tested';
+                const isIncompatible = result.status === 'incompatible';
                 
                 return (
                   <Card key={index} className={`border-l-4 ${
-                    isSuccess ? 'border-l-green-500' : 'border-l-red-500'
+                    isSuccess ? 'border-l-green-500' : 
+                    isTested ? 'border-l-blue-500' :
+                    isIncompatible ? 'border-l-orange-500' :
+                    'border-l-red-500'
                   }`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -254,21 +338,52 @@ export default function SocialMediaPublisher({
                             <Icon className="w-4 h-4" />
                           </div>
                           
-                          <div>
+                          <div className="flex-1">
                             <div className="font-medium">
                               {result.config_name} ({PLATFORM_NAMES[result.platform as keyof typeof PLATFORM_NAMES]})
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">
                               {result.status === 'published' && 'Published successfully'}
                               {result.status === 'scheduled' && `Scheduled for ${result.scheduled_for}`}
+                              {result.status === 'tested' && `Content tested - Score: ${result.test_score}/100`}
+                              {result.status === 'incompatible' && 'Content not compatible'}
                               {result.status === 'failed' && result.error}
                             </div>
+                            
+                            {/* Test Score Badge */}
+                            {result.test_score && (
+                              <Badge 
+                                variant={result.test_score >= 80 ? 'default' : result.test_score >= 60 ? 'secondary' : 'destructive'}
+                                className="mt-1"
+                              >
+                                Score: {result.test_score}/100
+                              </Badge>
+                            )}
+                            
+                            {/* Issues and Suggestions */}
+                            {result.issues && result.issues.length > 0 && (
+                              <div className="mt-2 text-xs text-red-600">
+                                <strong>Issues:</strong> {result.issues.slice(0, 2).join(', ')}
+                                {result.issues.length > 2 && '...'}
+                              </div>
+                            )}
+                            
+                            {result.suggestions && result.suggestions.length > 0 && (
+                              <div className="mt-1 text-xs text-blue-600">
+                                <strong>Suggestions:</strong> {result.suggestions.slice(0, 2).join(', ')}
+                                {result.suggestions.length > 2 && '...'}
+                              </div>
+                            )}
                           </div>
                         </div>
                         
                         <div className="flex items-center gap-2">
                           {isSuccess ? (
                             <CheckCircle className="w-5 h-5 text-green-500" />
+                          ) : isTested ? (
+                            <CheckCircle className="w-5 h-5 text-blue-500" />
+                          ) : isIncompatible ? (
+                            <AlertCircle className="w-5 h-5 text-orange-500" />
                           ) : (
                             <AlertCircle className="w-5 h-5 text-red-500" />
                           )}
@@ -453,6 +568,15 @@ export default function SocialMediaPublisher({
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <Button variant="outline" onClick={handleClose}>
                     Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleTestContent}
+                    disabled={publishing || selectedConfigs.length === 0}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Test Content
                   </Button>
                   <Button
                     onClick={handlePublish}
