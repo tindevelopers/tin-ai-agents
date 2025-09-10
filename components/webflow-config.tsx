@@ -129,37 +129,7 @@ export default function WebflowConfig() {
     }
   };
 
-  const fetchWebflowSites = async (apiToken: string) => {
-    if (!apiToken.trim()) {
-      toast.error('API token is required to fetch sites');
-      return;
-    }
-
-    setLoadingSites(true);
-    try {
-      const response = await fetch('/api/webflow/sites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ api_token: apiToken })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setAvailableSites(result.sites);
-        toast.success(`Found ${result.sites.length} Webflow sites`);
-      } else {
-        toast.error(`Failed to fetch sites: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error fetching Webflow sites:', error);
-      toast.error('Failed to connect to Webflow API');
-    } finally {
-      setLoadingSites(false);
-    }
-  };
+  // Removed fetchWebflowSites - each API token is site-specific
 
   const fetchWebflowCollections = async (apiToken: string, siteId: string) => {
     if (!apiToken.trim() || !siteId.trim()) {
@@ -202,6 +172,11 @@ export default function WebflowConfig() {
       return;
     }
 
+    if (!formData.site_id.trim()) {
+      toast.error('Site ID is required for testing');
+      return;
+    }
+
     setIsTestingConnection(true);
     try {
       const response = await fetch('/api/cms/test-connection', {
@@ -220,6 +195,11 @@ export default function WebflowConfig() {
       const result = await response.json();
       if (result.success) {
         toast.success(result.message);
+        
+        // Automatically fetch collections for this site after successful connection
+        if (formData.site_id) {
+          await fetchWebflowCollections(formData.api_token, formData.site_id);
+        }
       } else {
         toast.error(result.message);
       }
@@ -505,7 +485,7 @@ export default function WebflowConfig() {
                       </button>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      Get your API token from Webflow Account Settings → Integrations
+                      Get your site-specific API token from Webflow: Site Settings → Integrations → API Access
                     </p>
                   </div>
 
@@ -513,22 +493,8 @@ export default function WebflowConfig() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => fetchWebflowSites(formData.api_token)}
-                      disabled={loadingSites || !formData.api_token.trim()}
-                      className="flex items-center gap-2"
-                    >
-                      {loadingSites ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                      Load Sites
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
                       onClick={testWebflowConnection}
-                      disabled={isTestingConnection || !formData.api_token.trim()}
+                      disabled={isTestingConnection || !formData.api_token.trim() || !formData.site_id.trim()}
                       className="flex items-center gap-2"
                     >
                       {isTestingConnection ? (
@@ -541,33 +507,18 @@ export default function WebflowConfig() {
                   </div>
 
                   <div>
-                    <Label htmlFor="site_id">Webflow Site *</Label>
-                    <Select 
-                      value={formData.site_id} 
-                      onValueChange={(value) => {
-                        setFormData(prev => ({ ...prev, site_id: value, collection_id: '' }));
-                        setAvailableCollections([]);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a Webflow site" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSites.map((site) => (
-                          <SelectItem key={site._id} value={site._id}>
-                            <div className="flex items-center gap-2">
-                              <Globe className="w-4 h-4" />
-                              <span>{site.name}</span>
-                              {site.domains?.[0] && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {site.domains[0].name}
-                                </Badge>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="site_id">Webflow Site ID *</Label>
+                    <Input
+                      id="site_id"
+                      name="site_id"
+                      value={formData.site_id}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 507f1f77bcf86cd799439011"
+                      required
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Find your Site ID in Webflow: Site Settings → General → Site ID
+                    </p>
                   </div>
 
                   {formData.site_id && (
