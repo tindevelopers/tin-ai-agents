@@ -137,20 +137,21 @@ export default function WebflowConfig() {
 
     setLoadingSites(true);
     try {
-      const response = await fetch('https://api.webflow.com/sites', {
+      const response = await fetch('/api/webflow/sites', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Accept': 'application/json'
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ api_token: apiToken })
       });
 
-      if (response.ok) {
-        const sites = await response.json();
-        setAvailableSites(sites);
-        toast.success(`Found ${sites.length} Webflow sites`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setAvailableSites(result.sites);
+        toast.success(`Found ${result.sites.length} Webflow sites`);
       } else {
-        const error = await response.json().catch(() => ({}));
-        toast.error(`Failed to fetch sites: ${error.msg || response.statusText}`);
+        toast.error(`Failed to fetch sites: ${result.error}`);
       }
     } catch (error) {
       console.error('Error fetching Webflow sites:', error);
@@ -168,11 +169,15 @@ export default function WebflowConfig() {
 
     setLoadingCollections(true);
     try {
-      const response = await fetch(`https://api.webflow.com/sites/${siteId}/collections`, {
+      const response = await fetch('/api/webflow/collections', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Accept': 'application/json'
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          api_token: apiToken,
+          site_id: siteId
+        })
       });
 
       if (response.ok) {
@@ -181,7 +186,7 @@ export default function WebflowConfig() {
         toast.success(`Found ${collections.length} collections`);
       } else {
         const error = await response.json().catch(() => ({}));
-        toast.error(`Failed to fetch collections: ${error.msg || response.statusText}`);
+        toast.error(`Failed to fetch collections: ${error.error || response.statusText}`);
       }
     } catch (error) {
       console.error('Error fetching Webflow collections:', error);
