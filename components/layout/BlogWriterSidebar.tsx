@@ -75,6 +75,7 @@ const analyticsItems: NavItem[] = [
     icon: <Settings className="w-5 h-5" />,
     name: "Settings",
     subItems: [
+      { name: "Social Media", path: "/settings/social", pro: false },
       { name: "API Keys", path: "/settings/api", pro: false },
       { name: "Preferences", path: "/settings/preferences", pro: false },
     ],

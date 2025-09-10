@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 import { ContentPublisher } from './content-publisher';
+import SocialMediaPublisher from './social-media-publisher';
 
 export default function ContentEditor() {
   const [title, setTitle] = useState('');
@@ -89,6 +90,10 @@ export default function ContentEditor() {
   const [imageSuggestions, setImageSuggestions] = useState<any[]>([]);
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [featuredImage, setFeaturedImage] = useState<any>(null);
+  
+  // Social Media Publisher state
+  const [showSocialPublisher, setShowSocialPublisher] = useState(false);
+  const [savedPostId, setSavedPostId] = useState<string | null>(null);
 
   // Helper functions to dispatch content change events
   const dispatchContentChanged = () => {
@@ -574,6 +579,7 @@ export default function ContentEditor() {
             console.log('✅ Blog post saved with ID:', result.blogPost?.id);
             // Store the blog ID for publishing
             setSavedBlogId(result.blogPost?.id);
+            setSavedPostId(result.blogPost?.id);
             return result;
           } else {
             throw new Error(result.error || 'Unknown error occurred');
@@ -1196,6 +1202,16 @@ export default function ContentEditor() {
                   >
                     <Share className="w-4 h-4 mr-1" />
                     Publish
+                  </Button>
+                )}
+                {savedPostId && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowSocialPublisher(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-1" />
+                    Social Media
                   </Button>
                 )}
               </div>
@@ -1937,6 +1953,19 @@ export default function ContentEditor() {
             }}
           />
         </motion.div>
+      )}
+
+      {/* Social Media Publisher */}
+      {savedPostId && (
+        <SocialMediaPublisher
+          blogId={savedPostId}
+          blogTitle={title}
+          blogContent={content}
+          blogExcerpt={content.substring(0, 200) + '...'}
+          featuredImage={featuredImage?.url}
+          isOpen={showSocialPublisher}
+          onClose={() => setShowSocialPublisher(false)}
+        />
       )}
     </div>
   );
