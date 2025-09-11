@@ -212,3 +212,4 @@ export class WebflowPublisher {
     return `https://${this.config.siteId}.webflow.io/blog/${slug}`;
   }
 }
+

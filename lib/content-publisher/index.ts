@@ -41,3 +41,4 @@ export const testContentForPlatform = async (content: AIContent, platform: strin
   const tester = new ContentTester();
   return await tester.testForPlatform(content, platform);
 };
+

@@ -268,3 +268,4 @@ export class ContentValidator {
     return limits[platform.toLowerCase()] || null;
   }
 }
+

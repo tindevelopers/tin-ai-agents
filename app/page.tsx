@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import BreadcrumbNavigation, { useBreadcrumb } from '@/components/breadcrumb-navigation';
 import BlogWriterLayout from '@/components/layout/BlogWriterLayout';
 import { SessionProvider } from 'next-auth/react';
+import { toast } from 'sonner';
 import { 
   PenTool, 
   Search, 
@@ -31,6 +32,7 @@ import {
 const DashboardView = dynamic(() => import('@/components/dashboard-view'), { ssr: false });
 const CreatePostWorkflow = dynamic(() => import('@/components/create-post-workflow'), { ssr: false });
 const ContentEditor = dynamic(() => import('@/components/content-editor'), { ssr: false });
+const EnhancedContentEditor = dynamic(() => import('@/components/enhanced-content-editor'), { ssr: false });
 const BlogList = dynamic(() => import('@/components/blog-list'), { ssr: false });
 const PublishedPosts = dynamic(() => import('@/components/published-posts'), { ssr: false });
 const DraftPosts = dynamic(() => import('@/components/draft-posts'), { ssr: false });
@@ -43,11 +45,12 @@ const TopicSuggestions = dynamic(() => import('@/components/topic-suggestions'),
 const ContentStrategyGenerator = dynamic(() => import('@/components/content-strategy'), { ssr: false });
 const NewPostModal = dynamic(() => import('@/components/new-post-modal'), { ssr: false });
 
-type TabType = 'dashboard' | 'create-post' | 'my-posts' | 'published' | 'drafts';
+type TabType = 'dashboard' | 'create-post' | 'ai-writer' | 'my-posts' | 'published' | 'drafts';
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'create-post', label: 'Create Post', icon: Plus },
+  { id: 'ai-writer', label: 'AI Writer', icon: Sparkles },
   { id: 'my-posts', label: 'My Posts', icon: FileText },
   { id: 'published', label: 'Published', icon: CheckCircle },
   { id: 'drafts', label: 'Drafts', icon: Edit3 },
@@ -161,6 +164,12 @@ export default function HomePage() {
           );
         }
         return <CreatePostWorkflow />;
+      case 'ai-writer':
+        return <EnhancedContentEditor onSave={(content) => {
+          // Handle saving the content
+          console.log('Saving content:', content);
+          toast.success('Content saved successfully!');
+        }} />;
       case 'my-posts':
         return <BlogList />;
       case 'published':
@@ -298,8 +307,17 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: TabType) => voi
         <div className="flex items-center justify-center gap-4">
           <Button 
             size="lg" 
-            onClick={() => setActiveTab('create-post')}
+            onClick={() => setActiveTab('ai-writer')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
+          >
+            <Sparkles className="w-5 h-5 mr-2" />
+            AI Writer
+          </Button>
+          <Button 
+            size="lg" 
+            onClick={() => setActiveTab('create-post')}
+            variant="outline"
+            className="px-8 py-3 text-lg"
           >
             Start Writing
             <PenTool className="w-5 h-5 ml-2" />
