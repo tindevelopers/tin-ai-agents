@@ -158,8 +158,8 @@ If you can see this post in your Webflow CMS, the integration is working correct
               external_id: result.contentId,
               published_url: result.url || '',
               status: 'published',
-              sync_hash: JSON.stringify(result.metadata),
-              external_metadata: result.metadata,
+              sync_hash: JSON.stringify(result.metadata || {}),
+              external_metadata: result.metadata || {},
               last_synced_at: new Date()
             }
           });
