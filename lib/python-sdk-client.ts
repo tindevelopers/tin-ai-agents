@@ -8,7 +8,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 // Environment configuration
-const PYTHON_SDK_URL = process.env.NEXT_PUBLIC_PYTHON_SDK_URL || 'https://sdk-blog-writer-v10-production.up.railway.app';
+const PYTHON_SDK_URL = process.env.NEXT_PUBLIC_PYTHON_SDK_URL || 'https://sdk-ai-blog-writer-python-production.up.railway.app';
 
 // Type definitions for the Python SDK
 export interface BlogGenerationRequest {

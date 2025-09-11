@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
-import { AIContentPublisher, AIContent, testContentForPlatform } from '@/lib/content-publisher';
+import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
+import { ContentTester } from '@/lib/content-publisher/content-tester';
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +48,8 @@ export async function POST(request: NextRequest) {
     
     for (const platform of platforms) {
       try {
-        const result = await testContentForPlatform(aiContent, platform);
+        const tester = new ContentTester();
+        const result = await tester.testForPlatform(aiContent, platform);
         testResults.push(result);
       } catch (error) {
         testResults.push({
