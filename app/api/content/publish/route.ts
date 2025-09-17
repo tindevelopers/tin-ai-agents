@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 // POST /api/content/publish - Unified content publishing to multiple platforms
 export async function POST(request: NextRequest) {
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize the AI Content Publisher
-    const publisher = new AIContentPublisher();
+    // Initialize the External API Client
+    const publisher = externalAPIClient;
     
     // Get platform configurations
     const platformConfigs = await Promise.all(
@@ -85,14 +85,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Configure all platforms
+    // Configure all platforms using external API
     for (const { platform, config, type } of platformConfigs) {
       if (type === 'cms' && platform === 'webflow') {
         const credentials = JSON.parse(config!.api_credentials as string);
+        const cmsConfig = config as any; // Type assertion for CMS config
         await publisher.configureWebflow(
           credentials.api_token,
-          config!.site_id!,
-          config!.collection_id || undefined
+          cmsConfig.site_id!,
+          cmsConfig.collection_id || undefined
         );
       } else if (type === 'social') {
         const credentials = JSON.parse(config!.api_credentials as string);
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
           const testResult = await publisher.testContentForPlatform(content, platform);
           testResults.push(testResult);
           
-          if (!testResult.isCompatible) {
+          if (!testResult.success) {
             results.push({
               platform,
               status: 'failed',
@@ -146,8 +147,8 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           testResults.push({
             platform,
-            isCompatible: false,
-            score: 0,
+            success: false,
+            message: 'Test failed',
             issues: [error instanceof Error ? error.message : 'Test failed'],
             suggestions: []
           });
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
 
       // Filter out incompatible platforms
       const compatiblePlatforms = testResults
-        .filter(r => r.isCompatible)
+        .filter(r => r.success)
         .map(r => r.platform);
       
       if (compatiblePlatforms.length === 0) {
@@ -179,8 +180,8 @@ export async function POST(request: NextRequest) {
       platforms.splice(0, platforms.length, ...compatiblePlatforms);
     }
 
-    // Publish to all compatible platforms
-    const publishResults = await publisher.publishToMultiple(content, platforms);
+    // Publish to all compatible platforms using external API
+    const publishResults = await publisher.publishContent(content, platforms);
 
     // Process results and update database
     for (const [platform, result] of Object.entries(publishResults)) {
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
               published_at: new Date(),
               published_url: result.url || '',
               external_id: result.contentId || '',
-              metadata: result.metadata
+               engagement_metrics: result.metadata || {}
             }
           });
         }
@@ -222,7 +223,7 @@ export async function POST(request: NextRequest) {
           published_url: result.url,
           external_id: result.contentId,
           message: result.message,
-          test_score: testResults.find(t => t.platform === platform)?.score
+           test_score: testResults.find(t => t.platform === platform)?.success ? 100 : 0
         });
       } else {
         results.push({

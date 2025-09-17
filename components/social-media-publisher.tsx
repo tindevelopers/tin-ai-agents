@@ -176,7 +176,7 @@ export default function SocialMediaPublisher({
           // Transform test results to match publishResults format
           const testResults = result.results.map((r: any) => ({
             platform: r.platform,
-            status: r.isCompatible ? 'tested' : 'incompatible',
+            status: r.success ? 'tested' : 'incompatible',
             test_score: r.score,
             issues: r.issues,
             suggestions: r.suggestions,

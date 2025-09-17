@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,8 +98,8 @@ If you can see this post in your Webflow CMS, the integration is working correct
         // Parse API credentials
         const credentials = JSON.parse(cmsConfig.api_credentials as string);
         
-        // Initialize publisher and configure Webflow
-        const publisher = new AIContentPublisher();
+        // Initialize External API Client and configure Webflow
+        const publisher = externalAPIClient;
         await publisher.configureWebflow(
           credentials.api_token,
           cmsConfig.site_id!,
@@ -126,9 +126,8 @@ If you can see this post in your Webflow CMS, the integration is working correct
         };
 
         // Test content before publishing
-        const tester = new (await import('@/lib/content-publisher/content-tester')).ContentTester();
-        const testResult = await tester.testForPlatform(content, 'webflow');
-        if (!testResult.isCompatible) {
+        const testResult = await publisher.testContentForPlatform(content, 'webflow');
+        if (!testResult.success) {
           return NextResponse.json({
             success: false,
             message: 'Content not compatible with Webflow',
@@ -137,8 +136,12 @@ If you can see this post in your Webflow CMS, the integration is working correct
           });
         }
 
-        // Publish the blog post
-        const result = await publisher.publish(content, 'webflow');
+        // Publish the blog post using external API
+        const result = await publisher.publishToWebflow(content, {
+          apiKey: credentials.api_token,
+          siteId: cmsConfig.site_id!,
+          collectionId: cmsConfig.collection_id || undefined
+        });
 
         // Check if publishing was successful
         if (!result.success) {

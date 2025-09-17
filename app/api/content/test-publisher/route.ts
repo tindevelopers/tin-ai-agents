@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,12 +33,12 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // Initialize publisher
-    const publisher = new AIContentPublisher();
+    // Initialize External API Client
+    const publisher = externalAPIClient;
 
     // Test content validation
     console.log('✅ Testing content validation...');
-    const validation = publisher.validateContent(testContent);
+    const validation = await publisher.validateContent(testContent);
     
     console.log('📊 Validation result:', {
       isValid: validation.isValid,
@@ -51,20 +51,20 @@ export async function GET(request: NextRequest) {
     
     const configurationTest = {
       canConfigureWebflow: typeof publisher.configureWebflow === 'function',
-      canConfigureWordPress: typeof publisher.configureWordPress === 'function',
+      canConfigureSocialMedia: typeof publisher.configureSocialMedia === 'function',
       hasValidationMethod: typeof publisher.validateContent === 'function',
-      hasPublishMethod: typeof publisher.publish === 'function',
-      hasBatchPublishMethod: typeof publisher.batchPublish === 'function'
+      hasPublishContentMethod: typeof publisher.publishContent === 'function',
+      hasPublishToWebflowMethod: typeof publisher.publishToWebflow === 'function'
     };
 
     // Test SDK methods existence
     const sdkMethods = {
       configureWebflow: typeof publisher.configureWebflow,
-      configureWordPress: typeof publisher.configureWordPress,
+      configureSocialMedia: typeof publisher.configureSocialMedia,
       validateContent: typeof publisher.validateContent,
-      publish: typeof publisher.publish,
-      publishToMultiple: typeof publisher.publishToMultiple,
-      batchPublish: typeof publisher.batchPublish
+      publishContent: typeof publisher.publishContent,
+      publishToWebflow: typeof publisher.publishToWebflow,
+      publishToSocialMedia: typeof publisher.publishToSocialMedia
     };
 
     console.log('✅ AI Content Publisher SDK integration test completed successfully!');
@@ -117,10 +117,10 @@ export async function POST(request: NextRequest) {
 
     console.log('🧪 Running AI Content Publisher test:', testType);
 
-    const publisher = new AIContentPublisher();
+    const publisher = externalAPIClient;
 
     if (testType === 'validation' && content) {
-      const validation = publisher.validateContent(content);
+      const validation = await publisher.validateContent(content);
       
       return NextResponse.json({
         success: true,
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     if (testType === 'mock-publish' && content) {
       // Mock publish test (doesn't actually publish)
-      const validation = publisher.validateContent(content);
+      const validation = await publisher.validateContent(content);
       
       if (!validation.isValid) {
         return NextResponse.json({
