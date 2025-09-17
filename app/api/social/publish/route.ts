@@ -154,13 +154,16 @@ export async function POST(request: NextRequest) {
               },
             });
 
-            if (!testResult.isCompatible) {
+            if (!testResult.success) {
               // Mark as failed due to compatibility issues
               await prisma.socialPublication.update({
                 where: { id: publication.id },
                 data: {
                   status: 'failed',
-                  error_message: `Content not compatible: ${testResult.issues.join(', ')}`
+                  engagement_metrics: {
+                    error_message: `Content not compatible: ${testResult.issues?.join(', ') || 'Unknown error'}`,
+                    test_issues: testResult.issues || []
+                  }
                 },
               });
 
@@ -168,7 +171,7 @@ export async function POST(request: NextRequest) {
                 platform: config.platform_type,
                 config_name: config.name,
                 status: 'failed',
-                error: `Content not compatible: ${testResult.issues.join(', ')}`,
+                error: `Content not compatible: ${testResult.issues?.join(', ') || 'Unknown error'}`,
                 suggestions: testResult.suggestions,
                 publication_id: publication.id,
               });
@@ -190,7 +193,7 @@ export async function POST(request: NextRequest) {
                   published_at: new Date(),
                   published_url: result.url || '',
                   external_id: result.contentId || '',
-                  metadata: result.metadata
+                  engagement_metrics: result.metadata || {}
                 },
               });
 
@@ -201,7 +204,7 @@ export async function POST(request: NextRequest) {
                 published_url: result.url,
                 external_id: result.contentId,
                 publication_id: publication.id,
-                test_score: testResult.score,
+                test_score: testResult.success ? 100 : 0,
                 suggestions: testResult.suggestions
               });
             } else {
@@ -210,7 +213,9 @@ export async function POST(request: NextRequest) {
                 where: { id: publication.id },
                 data: {
                   status: 'failed',
-                  error_message: result.message
+                  engagement_metrics: {
+                    error_message: result.message
+                  }
                 },
               });
 

@@ -233,18 +233,3 @@ export class ExternalAPIClient {
 // Create a singleton instance
 export const externalAPIClient = new ExternalAPIClient();
 
-// Export types for backward compatibility
-export type {
-  AIContent,
-  PublishResult,
-  ValidationResult,
-  ValidationError,
-  ValidationWarning,
-  ContentTestResult,
-  WebflowConfig,
-  SocialMediaConfig,
-  PlatformConfig,
-  ContentImage,
-  FAQItem,
-  ProductSpecification
-};

@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
           const testResult = await publisher.testContentForPlatform(content, platform);
           testResults.push(testResult);
           
-          if (!testResult.isCompatible) {
+          if (!testResult.success) {
             results.push({
               platform,
               status: 'failed',
@@ -147,8 +147,8 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           testResults.push({
             platform,
-            isCompatible: false,
-            score: 0,
+            success: false,
+            message: 'Test failed',
             issues: [error instanceof Error ? error.message : 'Test failed'],
             suggestions: []
           });
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
 
       // Filter out incompatible platforms
       const compatiblePlatforms = testResults
-        .filter(r => r.isCompatible)
+        .filter(r => r.success)
         .map(r => r.platform);
       
       if (compatiblePlatforms.length === 0) {
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
               published_at: new Date(),
               published_url: result.url || '',
               external_id: result.contentId || '',
-              metadata: result.metadata
+               engagement_metrics: result.metadata || {}
             }
           });
         }
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
           published_url: result.url,
           external_id: result.contentId,
           message: result.message,
-          test_score: testResults.find(t => t.platform === platform)?.score
+           test_score: testResults.find(t => t.platform === platform)?.success ? 100 : 0
         });
       } else {
         results.push({

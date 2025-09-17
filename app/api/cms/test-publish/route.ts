@@ -126,9 +126,8 @@ If you can see this post in your Webflow CMS, the integration is working correct
         };
 
         // Test content before publishing
-        const tester = new (await import('@/lib/content-publisher/content-tester')).ContentTester();
-        const testResult = await tester.testForPlatform(content, 'webflow');
-        if (!testResult.isCompatible) {
+        const testResult = await publisher.testContentForPlatform(content, 'webflow');
+        if (!testResult.success) {
           return NextResponse.json({
             success: false,
             message: 'Content not compatible with Webflow',

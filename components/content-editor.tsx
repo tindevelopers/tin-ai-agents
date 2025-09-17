@@ -13,6 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
 // Note: ContentPublisher component will be updated to use external API
 import SocialMediaPublisher from './social-media-publisher';
+import { ContentPublisher } from './content-publisher';
 
 export default function ContentEditor() {
   const [title, setTitle] = useState('');
