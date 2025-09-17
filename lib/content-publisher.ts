@@ -46,6 +46,7 @@ export interface PublishResult {
   contentId?: string;
   url?: string;
   errors?: string[];
+  metadata?: Record<string, any>;
 }
 
 export interface ValidationResult {
