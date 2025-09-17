@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
+import { AIContentPublisher, AIContent } from '@/lib/content-publisher/index';
 
 // POST /api/content/publish - Unified content publishing to multiple platforms
 export async function POST(request: NextRequest) {
