@@ -571,7 +571,7 @@ export default function EnhancedContentEditor({
 
               <Button 
                 onClick={handleGenerate} 
-                disabled={isGenerating || !blogPost.title.trim() || sdkStatus !== 'ready'}
+                disabled={isGenerating || !blogPost.title.trim()}
                 className="w-full"
                 size="lg"
               >
