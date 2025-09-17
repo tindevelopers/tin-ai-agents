@@ -89,10 +89,11 @@ export async function POST(request: NextRequest) {
     for (const { platform, config, type } of platformConfigs) {
       if (type === 'cms' && platform === 'webflow') {
         const credentials = JSON.parse(config!.api_credentials as string);
+        const cmsConfig = config as any; // Type assertion for CMS config
         await publisher.configureWebflow(
           credentials.api_token,
-          config!.site_id!,
-          config!.collection_id || undefined
+          cmsConfig.site_id!,
+          cmsConfig.collection_id || undefined
         );
       } else if (type === 'social') {
         const credentials = JSON.parse(config!.api_credentials as string);
