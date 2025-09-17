@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // Initialize publisher
-    const publisher = new AIContentPublisher();
+    // Initialize External API Client
+    const publisher = externalAPIClient;
 
     // Test content validation
     console.log('✅ Testing content validation...');
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🧪 Running AI Content Publisher test:', testType);
 
-    const publisher = new AIContentPublisher();
+    const publisher = externalAPIClient;
 
     if (testType === 'validation' && content) {
       const validation = publisher.validateContent(content);

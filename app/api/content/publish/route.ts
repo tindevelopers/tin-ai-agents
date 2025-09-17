@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher/index';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 // POST /api/content/publish - Unified content publishing to multiple platforms
 export async function POST(request: NextRequest) {
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize the AI Content Publisher
-    const publisher = new AIContentPublisher();
+    // Initialize the External API Client
+    const publisher = externalAPIClient;
     
     // Get platform configurations
     const platformConfigs = await Promise.all(
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Configure all platforms
+    // Configure all platforms using external API
     for (const { platform, config, type } of platformConfigs) {
       if (type === 'cms' && platform === 'webflow') {
         const credentials = JSON.parse(config!.api_credentials as string);
@@ -180,8 +180,8 @@ export async function POST(request: NextRequest) {
       platforms.splice(0, platforms.length, ...compatiblePlatforms);
     }
 
-    // Publish to all compatible platforms
-    const publishResults = await publisher.publishToMultiple(content, platforms);
+    // Publish to all compatible platforms using external API
+    const publishResults = await publisher.publishContent(content, platforms);
 
     // Process results and update database
     for (const [platform, result] of Object.entries(publishResults)) {

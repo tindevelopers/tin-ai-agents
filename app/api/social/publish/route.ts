@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 import crypto from 'crypto';
 
 export const runtime = 'nodejs';
@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
         } else {
           // Publish immediately using AI Content Publisher SDK
           try {
-            // Initialize the AI Content Publisher
-            const publisher = new AIContentPublisher();
+            // Initialize the External API Client
+            const publisher = externalAPIClient;
             
             // Configure the social media platform
             await publisher.configureSocialMedia(config.platform_type, {
@@ -175,8 +175,11 @@ export async function POST(request: NextRequest) {
               continue;
             }
 
-            // Publish the content
-            const result = await publisher.publish(content, config.platform_type);
+            // Publish the content using external API
+            const result = await publisher.publishToSocialMedia(content, config.platform_type, {
+              platform: config.platform_type as any,
+              credentials
+            });
 
             if (result.success) {
               // Update publication record with success

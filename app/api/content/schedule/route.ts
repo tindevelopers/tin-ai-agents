@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
 import { prisma } from '@/lib/db';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
-import { ContentScheduler } from '@/lib/content-publisher/content-scheduler';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 // In-memory scheduler instance (in production, this would be managed differently)
 let globalScheduler: ContentScheduler | null = null;
