@@ -191,3 +191,5 @@ For support and questions:
 ---
 
 **Built with ❤️ by TIN Developers**
+
+<!-- Last deployment: $(date) -->
