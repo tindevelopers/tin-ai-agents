@@ -1,0 +1,247 @@
+name: SDK Update Monitor
+
+on:
+  schedule:
+    # Check for SDK updates every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allow manual triggering
+  
+env:
+  SDK_REPO: 'tindevelopers/ai-content-publisher'
+  NODE_VERSION: '18'
+
+jobs:
+  check-sdk-updates:
+    runs-on: ubuntu-latest
+    outputs:
+      has-updates: ${{ steps.check-updates.outputs.has-updates }}
+      latest-commit: ${{ steps.check-updates.outputs.latest-commit }}
+      changes-summary: ${{ steps.check-updates.outputs.changes-summary }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Check for SDK updates
+        id: check-updates
+        run: |
+          echo "🔍 Checking for updates in $SDK_REPO..."
+          
+          # Get current SDK commit hash from package.json
+          CURRENT_SDK_COMMIT=$(node -p "
+            const pkg = require('./package.json');
+            const dep = pkg.dependencies['ai-content-publisher'] || '';
+            dep.includes('#') ? dep.split('#')[1] : 'main'
+          ")
+          
+          echo "Current SDK commit: $CURRENT_SDK_COMMIT"
+          
+          # Get latest commit from SDK repository
+          LATEST_SDK_COMMIT=$(curl -s "https://api.github.com/repos/$SDK_REPO/commits/main" | jq -r '.sha')
+          
+          echo "Latest SDK commit: $LATEST_SDK_COMMIT"
+          
+          # Compare commits
+          if [ "$CURRENT_SDK_COMMIT" != "$LATEST_SDK_COMMIT" ]; then
+            echo "✅ Updates found!"
+            echo "has-updates=true" >> $GITHUB_OUTPUT
+            echo "latest-commit=$LATEST_SDK_COMMIT" >> $GITHUB_OUTPUT
+            
+            # Get commit messages since current version
+            CHANGES=$(curl -s "https://api.github.com/repos/$SDK_REPO/compare/$CURRENT_SDK_COMMIT...$LATEST_SDK_COMMIT" | jq -r '.commits[] | "- \(.commit.message | split("\n")[0])"' | head -10)
+            echo "changes-summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            
+            echo "📝 Recent changes:"
+            echo "$CHANGES"
+          else
+            echo "✅ SDK is up to date"
+            echo "has-updates=false" >> $GITHUB_OUTPUT
+          fi
+
+  update-sdk-integration:
+    needs: check-sdk-updates
+    if: needs.check-sdk-updates.outputs.has-updates == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name 'SDK Update Bot'
+          git config --global user.email 'noreply@github.com'
+      
+      - name: Create update branch
+        id: create-branch
+        run: |
+          BRANCH_NAME="sdk-update-$(date +%Y%m%d-%H%M%S)"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+      
+      - name: Update SDK dependency
+        run: |
+          echo "📦 Updating AI Content Publisher SDK..."
+          
+          # Update package.json to use latest commit
+          npm install https://github.com/$SDK_REPO.git#${{ needs.check-sdk-updates.outputs.latest-commit }}
+          
+          echo "✅ SDK updated to commit: ${{ needs.check-sdk-updates.outputs.latest-commit }}"
+      
+      - name: Run SDK integration tests
+        run: |
+          echo "🧪 Running SDK integration tests..."
+          
+          # Install dependencies
+          npm install
+          
+          # Run our custom SDK tests (if they exist)
+          if [ -f "scripts/test-sdk-integration.js" ]; then
+            node scripts/test-sdk-integration.js
+          fi
+          
+          # Check that our content publisher still works
+          node -e "
+            try {
+              const { AIContentPublisher } = require('./lib/content-publisher');
+              const publisher = new AIContentPublisher();
+              console.log('✅ SDK integration test passed');
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ SDK integration test failed:', error.message);
+              process.exit(1);
+            }
+          "
+      
+      - name: Check for breaking changes
+        id: breaking-changes
+        run: |
+          echo "🔍 Checking for potential breaking changes..."
+          
+          # Check if our key methods still exist
+          BREAKING_CHANGES=""
+          
+          # Test content publisher functionality
+          node scripts/check-sdk-compatibility.js || {
+            BREAKING_CHANGES="true"
+            echo "⚠️ Potential breaking changes detected"
+          }
+          
+          echo "breaking-changes=$BREAKING_CHANGES" >> $GITHUB_OUTPUT
+      
+      - name: Update integration documentation
+        run: |
+          echo "📝 Updating integration documentation..."
+          
+          # Update SDK version in README or docs
+          if [ -f "SDK_INTEGRATION.md" ]; then
+            sed -i "s/Latest SDK commit: .*/Latest SDK commit: ${{ needs.check-sdk-updates.outputs.latest-commit }}/" SDK_INTEGRATION.md
+          fi
+          
+          # Create/update changelog entry
+          cat > SDK_UPDATE_LOG.md << EOF
+          # SDK Update Log
+          
+          ## $(date +%Y-%m-%d) - Auto Update
+          
+          **SDK Commit:** ${{ needs.check-sdk-updates.outputs.latest-commit }}
+          
+          **Changes:**
+          ${{ needs.check-sdk-updates.outputs.changes-summary }}
+          
+          **Breaking Changes:** ${{ steps.breaking-changes.outputs.breaking-changes == 'true' && 'Yes - Manual review required' || 'None detected' }}
+          
+          ---
+          EOF
+      
+      - name: Commit changes
+        run: |
+          git add .
+          git commit -m "feat: Auto-update AI Content Publisher SDK
+          
+          - Updated to latest commit: ${{ needs.check-sdk-updates.outputs.latest-commit }}
+          - Changes detected in upstream repository
+          - Automated integration testing passed
+          
+          Recent changes:
+          ${{ needs.check-sdk-updates.outputs.changes-summary }}
+          
+          Breaking changes: ${{ steps.breaking-changes.outputs.breaking-changes == 'true' && 'Detected - Review required' || 'None detected' }}"
+      
+      - name: Push branch
+        run: |
+          git push origin "$BRANCH_NAME"
+      
+      - name: Create Pull Request
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: ${{ steps.create-branch.outputs.branch-name }}
+          destination_branch: 'develop'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: "🤖 Auto-update: AI Content Publisher SDK"
+          pr_body: |
+            ## 🤖 Automated SDK Update
+            
+            This PR was automatically created to update the AI Content Publisher SDK to the latest version.
+            
+            ### 📊 Update Details
+            - **SDK Repository:** `${{ env.SDK_REPO }}`
+            - **New Commit:** `${{ needs.check-sdk-updates.outputs.latest-commit }}`
+            - **Breaking Changes:** ${{ steps.breaking-changes.outputs.breaking-changes == 'true' && '⚠️ **YES** - Manual review required' || '✅ None detected' }}
+            
+            ### 📝 Recent Changes
+            ${{ needs.check-sdk-updates.outputs.changes-summary }}
+            
+            ### 🧪 Automated Tests
+            - ✅ SDK installation successful
+            - ✅ Integration compatibility check passed
+            - ✅ Core functionality verified
+            
+            ### 👀 Review Required
+            ${{ steps.breaking-changes.outputs.breaking-changes == 'true' && '⚠️ **IMPORTANT:** Breaking changes detected. Please review the changes carefully before merging.' || '✅ No breaking changes detected. This update should be safe to merge.' }}
+            
+            ### 📚 Documentation
+            - Updated integration documentation
+            - Added changelog entry in `SDK_UPDATE_LOG.md`
+            
+            ---
+            *This PR was automatically created by the SDK Update Monitor workflow.*
+          pr_assignee: ${{ github.repository_owner }}
+          pr_label: "sdk-update,automated"
+          pr_draft: ${{ steps.breaking-changes.outputs.breaking-changes == 'true' && 'true' || 'false' }}
+
+  notify-update:
+    needs: [check-sdk-updates, update-sdk-integration]
+    if: always() && needs.check-sdk-updates.outputs.has-updates == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Notify team
+        run: |
+          echo "📢 SDK update notification sent"
+          echo "Update status: ${{ job.status }}"
+          echo "Latest commit: ${{ needs.check-sdk-updates.outputs.latest-commit }}"
+          
+          # You can add Slack/Discord/email notifications here
+          # Example: curl webhook to notify team

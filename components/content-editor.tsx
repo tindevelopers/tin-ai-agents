@@ -7,10 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2 } from 'lucide-react';
+import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft, Link, ExternalLink, Plus, Image, Camera, Wand2, Maximize2, Minimize2, X, CheckCircle, Share } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
+import { ContentPublisher } from './content-publisher';
+import SocialMediaPublisher from './social-media-publisher';
 
 export default function ContentEditor() {
   const [title, setTitle] = useState('');
@@ -35,12 +37,63 @@ export default function ContentEditor() {
   const [insertedLinks, setInsertedLinks] = useState<Set<number>>(new Set());
   const [contentTextareaRef, setContentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   
+  // Publishing states
+  const [showPublishPanel, setShowPublishPanel] = useState(false);
+  const [savedBlogId, setSavedBlogId] = useState<string | null>(null);
+  
+  // TODO: Re-enable website URL persistence after database migration
+  // Load user's website URL on component mount
+  // useEffect(() => {
+  //   const loadWebsiteUrl = async () => {
+  //     try {
+  //       const response = await fetch('/api/user/website-url');
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         if (data.website_url) {
+  //           setWebsiteUrl(data.website_url);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Failed to load website URL:', error);
+  //     }
+  //   };
+
+  //   loadWebsiteUrl();
+  // }, []);
+
+  // Function to save website URL to user profile (temporarily disabled)
+  const saveWebsiteUrl = async (url: string) => {
+    // TODO: Re-enable after database migration
+    console.log('Website URL would be saved:', url);
+    // try {
+    //   const response = await fetch('/api/user/website-url', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ website_url: url })
+    //   });
+      
+    //   if (response.ok) {
+    //     toast.success('Website URL saved to your profile');
+    //   } else {
+    //     toast.error('Failed to save website URL');
+    //   }
+    // } catch (error) {
+    //   console.error('Failed to save website URL:', error);
+    //   toast.error('Failed to save website URL');
+    // }
+  };
+
   // Image generation states
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [imageSuggestions, setImageSuggestions] = useState<any[]>([]);
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [featuredImage, setFeaturedImage] = useState<any>(null);
+  
+  // Social Media Publisher state
+  const [showSocialPublisher, setShowSocialPublisher] = useState(false);
+  const [savedPostId, setSavedPostId] = useState<string | null>(null);
 
   // Helper functions to dispatch content change events
   const dispatchContentChanged = () => {
@@ -287,26 +340,91 @@ export default function ContentEditor() {
     }
   };
 
+  // Function to insert a single image into content
   const insertImageIntoContent = (image: any) => {
-    const imageMarkdown = `\n\n![${image.altText}](${image.url})\n*${image.description}*\n\n`;
+    if (!image.url) {
+      toast.error('Image URL not available');
+      return;
+    }
+
+    const imageMarkdown = `![${image.altText || image.description}](${image.url})`;
     
-    if (image.type === 'featured') {
-      // Insert featured image at the beginning
-      const newContent = imageMarkdown + content;
-      setContent(newContent);
-    } else {
-      // Insert body images at appropriate positions
-      const paragraphs = content.split('\n\n');
-      const insertPosition = Math.floor(paragraphs.length / 2); // Insert around middle
+    // Insert the image at the current cursor position or at the end
+    const textarea = document.querySelector('textarea[placeholder*="content will appear here"]') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = content.substring(0, start);
+      const after = content.substring(end);
       
-      paragraphs.splice(insertPosition, 0, imageMarkdown.trim());
-      const newContent = paragraphs.join('\n\n');
+      // Add some spacing around the image
+      const newContent = before + '\n\n' + imageMarkdown + '\n\n' + after;
       setContent(newContent);
+      
+      // Update cursor position
+      setTimeout(() => {
+        const newPosition = start + imageMarkdown.length + 4;
+        textarea.setSelectionRange(newPosition, newPosition);
+        textarea.focus();
+      }, 100);
+      
+      toast.success(`Inserted image: ${image.description}`);
+    } else {
+      // Fallback: append to end of content
+      setContent(prevContent => prevContent + '\n\n' + imageMarkdown + '\n\n');
+      toast.success(`Added image: ${image.description}`);
     }
     
-    dispatchContentChanged();
-    toast.success(`📷 Image inserted: ${image.description}`);
+    // Trigger content change event if handler exists
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('contentChanged'));
+    }
   };
+
+  // Function to insert all images and continue editing
+  const handleInsertAllImagesAndContinue = () => {
+    if (generatedImages.length === 0) {
+      toast.error('No images to insert');
+      return;
+    }
+
+    let insertedCount = 0;
+    let contentToAdd = content;
+
+    // Insert featured image first if it exists
+    const featuredImg = generatedImages.find(img => img.type === 'featured');
+    if (featuredImg && featuredImg.url) {
+      const imageMarkdown = `![${featuredImg.altText || featuredImg.description}](${featuredImg.url})`;
+      contentToAdd = contentToAdd + '\n\n' + imageMarkdown + '\n\n';
+      insertedCount++;
+    }
+
+    // Insert body images
+    const bodyImages = generatedImages.filter(img => img.type === 'body' && img.url);
+    bodyImages.forEach((image, index) => {
+      const imageMarkdown = `![${image.altText || image.description}](${image.url})`;
+      contentToAdd = contentToAdd + '\n\n' + imageMarkdown + '\n\n';
+      insertedCount++;
+    });
+
+    setContent(contentToAdd);
+    setShowImagePanel(false);
+    
+    toast.success(`🎉 Inserted ${insertedCount} images into your blog post!`, {
+      description: 'Images have been added to your content. You can now save or continue editing.',
+      duration: 5000,
+    });
+
+    // Scroll to content area
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea[placeholder*="content will appear here"]') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.focus();
+        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 500);
+  };
+
 
   const generateContent = async () => {
     if (!title.trim()) {
@@ -446,6 +564,8 @@ export default function ContentEditor() {
               content: content.trim(),
               keywords: keywordArray,
               status: 'draft',
+              featuredImage: featuredImage,
+              generatedImages: generatedImages,
             }),
           });
 
@@ -457,6 +577,9 @@ export default function ContentEditor() {
           
           if (result.success) {
             console.log('✅ Blog post saved with ID:', result.blogPost?.id);
+            // Store the blog ID for publishing
+            setSavedBlogId(result.blogPost?.id);
+            setSavedPostId(result.blogPost?.id);
             return result;
           } else {
             throw new Error(result.error || 'Unknown error occurred');
@@ -571,6 +694,19 @@ export default function ContentEditor() {
       setContent(postData.content || '');
       setEditingPostSource(postData);
       
+      // Load featured image if it exists
+      if (postData.featured_image) {
+        console.log('🖼️ Loading featured image:', postData.featured_image);
+        setFeaturedImage({
+          url: postData.featured_image,
+          type: 'featured',
+          altText: `Featured image for ${postData.title}`,
+          description: `Featured image for blog post: ${postData.title}`,
+          generated: true,
+          realistic: true
+        });
+      }
+      
       // Clear any existing content idea data
       clearContentIdeaData();
       
@@ -646,7 +782,7 @@ export default function ContentEditor() {
   const isEditingMode = editingPostSource && editingPostId && content.trim();
   
   return (
-    <div className="space-y-6 w-full">
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'space-y-6 w-full'}`}>
       {/* Only show generation interface for NEW content creation */}
       {!isEditingMode && (
         <motion.div 
@@ -813,7 +949,12 @@ export default function ContentEditor() {
                 </label>
                 <Input
                   value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                   placeholder="https://yourwebsite.com"
                   className="w-full"
                 />
@@ -920,7 +1061,12 @@ export default function ContentEditor() {
                     </label>
                     <Input
                       value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                       placeholder="https://yourwebsite.com"
                       className="w-full"
                     />
@@ -994,10 +1140,17 @@ export default function ContentEditor() {
                     e.stopPropagation();
                     setShowImagePanel(!showImagePanel);
                   }}
-                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                  className={`${generatedImages.length > 0 
+                    ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                    : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'}`}
                 >
                   <Image className="w-4 h-4 mr-1" />
                   Images
+                  {generatedImages.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">
+                      {generatedImages.length}
+                    </Badge>
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -1041,6 +1194,26 @@ export default function ContentEditor() {
                   <Save className="w-4 h-4 mr-1" />
                   {editingPostId ? 'Update' : 'Save'}
                 </Button>
+                {savedBlogId && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowPublishPanel(!showPublishPanel)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-1" />
+                    Publish
+                  </Button>
+                )}
+                {savedPostId && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowSocialPublisher(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-1" />
+                    Social Media
+                  </Button>
+                )}
               </div>
             </CardContent>
 
@@ -1054,6 +1227,26 @@ export default function ContentEditor() {
                   <CardDescription>
                     Word count: {content.split(' ').filter(word => word.length > 0).length} words
                   </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </Button>
+                  {isFullscreen && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsFullscreen(false)}
+                      title="Close Fullscreen"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -1085,7 +1278,7 @@ export default function ContentEditor() {
                     setContent(e.target.value);
                     dispatchContentChanged();
                   }}
-                  className="min-h-[500px] font-mono text-sm transition-all duration-300"
+                  className={`${isFullscreen ? 'min-h-[80vh]' : 'min-h-[500px]'} font-mono text-sm transition-all duration-300 ${isFullscreen ? 'text-base' : ''}`}
                   placeholder={isEditingMode ? "Edit your content here..." : "Generated content will appear here..."}
                 />
               )}
@@ -1153,7 +1346,12 @@ export default function ContentEditor() {
                   </p>
                   <Input
                     value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    onChange={(e) => {
+                    setWebsiteUrl(e.target.value);
+                    if (e.target.value.trim()) {
+                      saveWebsiteUrl(e.target.value);
+                    }
+                  }}
                     placeholder="https://yourwebsite.com"
                     className="w-full"
                   />
@@ -1353,18 +1551,36 @@ export default function ContentEditor() {
                       {isGeneratingImages ? 'Creating Images...' : 'Create Images'}
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowImagePanel(false);
-                    }}
-                  >
-                    Close
-                  </Button>
+                  {generatedImages.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Auto-insert all images and close panel
+                        handleInsertAllImagesAndContinue();
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Save Images & Continue Editing
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowImagePanel(false);
+                      }}
+                    >
+                      Close
+                    </Button>
+                  )}
                 </div>
               </div>
               <CardDescription>
@@ -1718,6 +1934,38 @@ export default function ContentEditor() {
             </CardContent>
           </Card>
         </motion.div>
+      )}
+      
+      {/* Publishing Panel */}
+      {showPublishPanel && savedBlogId && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6"
+        >
+          <ContentPublisher 
+            blogId={savedBlogId}
+            title={title}
+            onPublishSuccess={(results) => {
+              console.log('✅ Published successfully:', results);
+              toast.success('🚀 Content published successfully to selected platforms!');
+              setShowPublishPanel(false);
+            }}
+          />
+        </motion.div>
+      )}
+
+      {/* Social Media Publisher */}
+      {savedPostId && (
+        <SocialMediaPublisher
+          blogId={savedPostId}
+          blogTitle={title}
+          blogContent={content}
+          blogExcerpt={content.substring(0, 200) + '...'}
+          featuredImage={featuredImage?.url}
+          isOpen={showSocialPublisher}
+          onClose={() => setShowSocialPublisher(false)}
+        />
       )}
     </div>
   );

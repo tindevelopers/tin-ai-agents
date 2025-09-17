@@ -30,6 +30,10 @@ export const authOptions: AuthOptions = {
           throw new Error('Invalid credentials')
         }
 
+        if (!user.password) {
+          throw new Error('Invalid credentials')
+        }
+
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
@@ -42,13 +46,26 @@ export const authOptions: AuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
         }
       }
     })
   ],
   session: {
     strategy: 'jwt'
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string
+      }
+      return session
+    }
   },
   pages: {
     signIn: '/auth/signin',

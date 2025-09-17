@@ -2,6 +2,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+// Type for generated images
+interface GeneratedImage {
+  url: string;
+  type: 'featured' | 'body';
+  altText?: string;
+  description?: string;
+  filename?: string;
+  placement?: string;
+}
+
 export const runtime = 'nodejs'; // Edge runtime cannot open TCP sockets (Prisma won't work)
 
 export async function POST(request: NextRequest) {
@@ -20,14 +30,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { id, title, content, keywords, status } = await request.json();
+    const { id, title, content, keywords, status, featuredImage, generatedImages } = await request.json() as {
+      id?: string;
+      title: string;
+      content: string;
+      keywords?: string[];
+      status?: string;
+      featuredImage?: { url: string; alt?: string; filename?: string };
+      generatedImages?: GeneratedImage[];
+    };
     console.log('📝 Received blog data:', { 
       hasId: !!id,
       title: title?.substring(0, 50) + '...', 
       contentLength: content?.length || 0,
       keywordsLength: keywords?.length || 0,
-      status 
+      status,
+      hasFeaturedImage: !!featuredImage,
+      generatedImagesCount: generatedImages?.length || 0
     });
+
+    // Process and embed generated images into content
+    let processedContent = content || '';
+    let finalFeaturedImage = featuredImage;
+    
+    if (generatedImages && generatedImages.length > 0) {
+      console.log('🖼️ Processing generated images for embedding:', generatedImages.length);
+      
+      // Find featured image and body images
+      const featuredImg = generatedImages.find(img => img.type === 'featured');
+      const bodyImages = generatedImages.filter(img => img.type === 'body');
+      
+      // If we have a featured image, use it
+      if (featuredImg?.url) {
+        finalFeaturedImage = {
+          url: featuredImg.url,
+          alt: featuredImg.altText || featuredImg.description || 'Featured image',
+          filename: featuredImg.filename
+        };
+        console.log('✅ Using generated featured image:', finalFeaturedImage.url);
+      }
+      
+      // Embed body images into content based on their placement
+      if (bodyImages.length > 0) {
+        console.log('📝 Embedding body images into content:', bodyImages.length);
+        
+        bodyImages.forEach((img, index) => {
+          const imageMarkdown = `\n\n![${img.altText || img.description || `Image ${index + 1}`}](${img.url})\n\n`;
+          
+          // Insert images based on placement preference
+          if (img.placement && img.placement.includes('beginning')) {
+            // Insert near the beginning (after first paragraph)
+            const firstParagraphEnd = processedContent.indexOf('\n\n');
+            if (firstParagraphEnd > 0) {
+              processedContent = processedContent.slice(0, firstParagraphEnd) + imageMarkdown + processedContent.slice(firstParagraphEnd);
+            } else {
+              processedContent = imageMarkdown + processedContent;
+            }
+          } else if (img.placement && img.placement.includes('end')) {
+            // Insert near the end
+            processedContent = processedContent + imageMarkdown;
+          } else {
+            // Insert in the middle (default behavior)
+            const contentLength = processedContent.length;
+            const midPoint = Math.floor(contentLength / 2);
+            const nextParagraph = processedContent.indexOf('\n\n', midPoint);
+            
+            if (nextParagraph > 0) {
+              processedContent = processedContent.slice(0, nextParagraph) + imageMarkdown + processedContent.slice(nextParagraph);
+            } else {
+              processedContent = processedContent + imageMarkdown;
+            }
+          }
+        });
+        
+        console.log('✅ Embedded images into content. New content length:', processedContent.length);
+      }
+    }
 
     // Check if blog_posts table exists
     try {
@@ -52,9 +130,10 @@ export async function POST(request: NextRequest) {
         where: { id },
         data: {
           title: title || 'Untitled',
-          content: content || '',
+          content: processedContent || '',
           keywords: JSON.stringify(keywords || []),
           status: status || 'draft',
+          featured_image: finalFeaturedImage?.url || null,
         },
       });
     } else {
@@ -63,9 +142,10 @@ export async function POST(request: NextRequest) {
       blogPost = await prisma.blogPost.create({
         data: {
           title: title || 'Untitled Blog Post',
-          content: content || '',
+          content: processedContent || '',
           keywords: JSON.stringify(keywords || []),
           status: status || 'draft',
+          featured_image: finalFeaturedImage?.url || null,
         },
       });
     }

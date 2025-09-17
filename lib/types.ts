@@ -4,7 +4,7 @@ export interface BlogPost {
   title: string;
   content: string;
   keywords: string[];
-  status: 'draft' | 'published';
+  status: 'draft' | 'ready_to_publish' | 'published';
   createdAt: Date;
   updatedAt: Date;
 }
