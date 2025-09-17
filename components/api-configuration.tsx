@@ -323,7 +323,7 @@ export default function ApiConfiguration() {
       const startTime = Date.now();
       
       // Test the endpoint based on its method
-      let response;
+      let response: Response;
       if (endpoint.method === 'GET') {
         response = await fetch(endpoint.path);
       } else {
