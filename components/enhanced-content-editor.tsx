@@ -119,7 +119,7 @@ export default function EnhancedContentEditor({
 
       console.log('🚀 Starting blog generation with:', requestBody);
 
-      const response = await fetch('https://api-ai-blog-writer-dev-kq42l26tuq-od.a.run.app/api/v1/generate', {
+      const response = await fetch('/api/blog/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -220,14 +220,10 @@ export default function EnhancedContentEditor({
         generatedImages: [],
       };
 
-      const response = await fetch('https://api-ai-blog-writer-dev-kq42l26tuq-od.a.run.app/api/v1/analyze', {
+      const response = await fetch('/api/blog/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: contentToSave.content,
-          title: contentToSave.title,
-          keywords: contentToSave.keywords
-        }),
+        body: JSON.stringify(contentToSave),
       });
 
       if (!response.ok) {
@@ -252,7 +248,7 @@ export default function EnhancedContentEditor({
 
     setIsLoadingKeywords(true);
     try {
-      const response = await fetch('https://api-ai-blog-writer-dev-kq42l26tuq-od.a.run.app/api/v1/keywords/suggest', {
+      const response = await fetch('/api/keywords/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
