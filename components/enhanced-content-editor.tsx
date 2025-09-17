@@ -63,6 +63,8 @@ export default function EnhancedContentEditor({
   // Generation State
   const [generationResult, setGenerationResult] = useState<any>(null);
   const [keywordInput, setKeywordInput] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingKeywords, setIsLoadingKeywords] = useState(false);
 
   // Advanced Options
   const [advancedOptions, setAdvancedOptions] = useState({
