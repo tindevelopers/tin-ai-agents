@@ -629,7 +629,7 @@ export default function EnhancedContentEditor({
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {generationResult.seo_metrics.recommendations.map((rec, index) => (
+              {generationResult.seo_metrics.recommendations.map((rec: string, index: number) => (
                 <li key={index} className="flex items-start gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <span className="text-sm">{rec}</span>
