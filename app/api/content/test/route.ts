@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
-import { AIContentPublisher, AIContent } from '@/lib/content-publisher';
-import { ContentTester } from '@/lib/content-publisher/content-tester';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,14 +47,13 @@ export async function POST(request: NextRequest) {
     
     for (const platform of platforms) {
       try {
-        const tester = new ContentTester();
-        const result = await tester.testForPlatform(aiContent, platform);
+        const result = await externalAPIClient.testContentForPlatform(aiContent, platform);
         testResults.push(result);
       } catch (error) {
         testResults.push({
           platform,
-          isCompatible: false,
-          score: 0,
+          success: false,
+          message: 'Test failed',
           issues: [error instanceof Error ? error.message : 'Unknown error'],
           suggestions: ['Check platform configuration and try again']
         });
@@ -63,13 +61,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate overall compatibility
-    const compatiblePlatforms = testResults.filter(r => r.isCompatible);
-    const averageScore = testResults.reduce((sum, r) => sum + r.score, 0) / testResults.length;
+    const compatiblePlatforms = testResults.filter(r => r.success);
+    const averageScore = testResults.reduce((sum, r) => sum + (r.success ? 100 : 0), 0) / testResults.length;
     
     // Get best platforms (score > 70 and compatible)
     const bestPlatforms = testResults
-      .filter(r => r.isCompatible && r.score > 70)
-      .sort((a, b) => b.score - a.score)
+      .filter(r => r.success)
+      .sort((a, b) => (b.success ? 1 : 0) - (a.success ? 1 : 0))
       .map(r => r.platform);
 
     // Collect all issues and suggestions

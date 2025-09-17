@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-config';
-import { AIContent } from '@/lib/content-publisher';
-import { ContentValidator } from '@/lib/content-publisher/content-validator';
+import { externalAPIClient, AIContent } from '@/lib/external-api-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,9 +41,8 @@ export async function POST(request: NextRequest) {
       mentions: content.mentions
     };
 
-    // Validate the content
-    const validator = new ContentValidator();
-    const validationResult = validator.validate(aiContent);
+    // Validate the content using external API
+    const validationResult = await externalAPIClient.validateContent(aiContent);
 
     // Categorize issues by severity
     const criticalErrors = validationResult.errors.filter(e => 

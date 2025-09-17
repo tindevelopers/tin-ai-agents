@@ -11,8 +11,9 @@ import { PenTool, Save, Eye, Sparkles, Download, FileText, Info, Edit, ArrowLeft
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
-import { ContentPublisher } from './content-publisher';
+// Note: ContentPublisher component will be updated to use external API
 import SocialMediaPublisher from './social-media-publisher';
+import { ContentPublisher } from './content-publisher';
 
 export default function ContentEditor() {
   const [title, setTitle] = useState('');

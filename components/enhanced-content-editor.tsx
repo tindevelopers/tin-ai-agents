@@ -130,7 +130,7 @@ export default function EnhancedContentEditor({
   const handleRemoveKeyword = (keyword: string) => {
     setBlogPost(prev => ({
       ...prev,
-      keywords: prev.keywords.filter(k => k !== keyword)
+      keywords: prev.keywords.filter((k: string) => k !== keyword)
     }));
   };
 
@@ -417,7 +417,7 @@ export default function EnhancedContentEditor({
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {blogPost.keywords.map((keyword, index) => (
+                  {blogPost.keywords.map((keyword: string, index: number) => (
                     <Badge 
                       key={index} 
                       variant="secondary" 
