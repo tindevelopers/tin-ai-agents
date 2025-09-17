@@ -1,0 +1,22 @@
+{
+  "name": "AI BlogWriter Pro",
+  "short_name": "BlogWriter",
+  "description": "Intelligent Content Creation with AI-powered keyword research, clustering, and content generation tools",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#7C3AED",
+  "background_color": "#ffffff",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait"
+}

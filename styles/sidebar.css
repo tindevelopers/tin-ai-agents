@@ -1,0 +1,147 @@
+/* Enhanced Sidebar Styles for AI Blog Writer */
+
+/* Menu Item Base Styles */
+.menu-item {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out;
+}
+
+.menu-item-active {
+  @apply bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-l-4 border-blue-500;
+}
+
+.menu-item-inactive {
+  @apply text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100;
+}
+
+/* Menu Item Icons */
+.menu-item-icon-active {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
+.menu-item-icon-inactive {
+  @apply text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200;
+}
+
+/* Menu Item Text */
+.menu-item-text {
+  @apply flex-1 text-left;
+}
+
+/* Dropdown Menu Items */
+.menu-dropdown-item {
+  @apply flex items-center justify-between px-3 py-2 text-sm rounded-md transition-all duration-150 ease-in-out;
+}
+
+.menu-dropdown-item-active {
+  @apply bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300;
+}
+
+.menu-dropdown-item-inactive {
+  @apply text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100;
+}
+
+/* Dropdown Badges */
+.menu-dropdown-badge {
+  @apply px-2 py-0.5 text-xs font-medium rounded-full;
+}
+
+.menu-dropdown-badge-active {
+  @apply bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300;
+}
+
+.menu-dropdown-badge-inactive {
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400;
+}
+
+/* Scrollbar Styles */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth Transitions */
+.sidebar-transition {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Hover Effects */
+.menu-item:hover .menu-item-icon-inactive {
+  @apply scale-110;
+}
+
+/* Focus States */
+.menu-item:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-opacity-50;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .menu-item {
+    @apply px-4 py-3;
+  }
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Gradient Backgrounds */
+.gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Enhanced Shadows */
+.shadow-theme-xs {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-theme-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark Mode Enhancements */
+.dark .menu-item-active {
+  @apply shadow-lg shadow-blue-500/10;
+}
+
+.dark .menu-dropdown-item-active {
+  @apply shadow-md shadow-blue-500/5;
+}

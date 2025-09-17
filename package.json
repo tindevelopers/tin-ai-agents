@@ -64,7 +64,7 @@
     "@radix-ui/react-toggle-group": "1.1.0",
     "@radix-ui/react-tooltip": "1.1.2",
     "@types/bcryptjs": "2.4.6",
-    "ai-content-publisher": "github:tindevelopers/ai-content-publisher",
+    "ai-content-publisher": "github:tindevelopers/ai-content-publisher#24ec7665cc9d3a39c9d036791d291b291ea5e743",
     "autoprefixer": "10.4.15",
     "axios": "^1.11.0",
     "bcryptjs": "2.4.3",
@@ -97,6 +97,7 @@
     "stability-ai": "^0.7.0",
     "tailwind-scrollbar-hide": "1.1.7",
     "vaul": "0.9.9",
+    "vercel": "^47.0.6",
     "zod": "^4.1.5"
   },
   "browserslist": [

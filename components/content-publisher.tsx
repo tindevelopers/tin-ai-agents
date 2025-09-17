@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle, Globe, Send, Settings } from 'lucide-react';
+import { AlertCircle, CheckCircle, Globe, Send, Settings, Users, Bookmark, Share, MessageCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PublishResult {
@@ -43,14 +43,32 @@ export function ContentPublisher({ blogId, title, onPublishSuccess }: ContentPub
     password: '',
     defaultCategory: 'AI Generated'
   });
+  const [linkedinConfig, setLinkedinConfig] = useState({
+    accessToken: '',
+    authorId: '',
+    publishAsPage: false
+  });
+  const [mediumConfig, setMediumConfig] = useState({
+    integrationToken: '',
+    authorId: '',
+    publishStatus: 'draft'
+  });
+  const [ghostConfig, setGhostConfig] = useState({
+    apiUrl: '',
+    adminApiKey: '',
+    contentApiKey: ''
+  });
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishResults, setPublishResults] = useState<{ [platform: string]: PublishResult } | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [validationWarnings, setValidationWarnings] = useState<ValidationError[]>([]);
 
   const platforms = [
-    { id: 'webflow', name: 'Webflow', icon: Globe, description: 'Publish to Webflow CMS' },
-    { id: 'wordpress', name: 'WordPress', icon: Send, description: 'Publish to WordPress site' }
+    { id: 'webflow', name: 'Webflow', icon: Globe, description: 'Modern website builder with CMS', category: 'CMS', available: true },
+    { id: 'wordpress', name: 'WordPress', icon: Send, description: 'Popular content management system', category: 'CMS', available: true },
+    { id: 'linkedin', name: 'LinkedIn', icon: Users, description: 'Professional networking and articles', category: 'Social Media', available: false },
+    { id: 'medium', name: 'Medium', icon: Bookmark, description: 'Publishing platform for writers', category: 'Publishing', available: false },
+    { id: 'ghost', name: 'Ghost', icon: MessageCircle, description: 'Professional publishing platform', category: 'CMS', available: false }
   ];
 
   const handlePlatformToggle = (platformId: string) => {
@@ -89,6 +107,27 @@ export function ContentPublisher({ blogId, title, onPublishSuccess }: ContentPub
             username: wordpressConfig.username,
             password: wordpressConfig.password,
             defaultCategory: wordpressConfig.defaultCategory
+          }
+        }),
+        ...(selectedPlatforms.includes('linkedin') && {
+          linkedinConfig: {
+            accessToken: linkedinConfig.accessToken,
+            authorId: linkedinConfig.authorId,
+            publishAsPage: linkedinConfig.publishAsPage
+          }
+        }),
+        ...(selectedPlatforms.includes('medium') && {
+          mediumConfig: {
+            integrationToken: mediumConfig.integrationToken,
+            authorId: mediumConfig.authorId,
+            publishStatus: mediumConfig.publishStatus
+          }
+        }),
+        ...(selectedPlatforms.includes('ghost') && {
+          ghostConfig: {
+            apiUrl: ghostConfig.apiUrl,
+            adminApiKey: ghostConfig.adminApiKey,
+            contentApiKey: ghostConfig.contentApiKey
           }
         })
       };
@@ -228,6 +267,137 @@ export function ContentPublisher({ blogId, title, onPublishSuccess }: ContentPub
       );
     }
 
+    if (platform === 'linkedin') {
+      return (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-sm">LinkedIn Configuration</CardTitle>
+            <CardDescription>Configure your LinkedIn publishing settings</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="linkedin-token">Access Token</Label>
+              <Input
+                id="linkedin-token"
+                type="password"
+                placeholder="Your LinkedIn access token"
+                value={linkedinConfig.accessToken}
+                onChange={(e) => setLinkedinConfig(prev => ({ ...prev, accessToken: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="linkedin-author">Author ID</Label>
+              <Input
+                id="linkedin-author"
+                placeholder="Your LinkedIn member ID"
+                value={linkedinConfig.authorId}
+                onChange={(e) => setLinkedinConfig(prev => ({ ...prev, authorId: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="linkedin-page"
+                checked={linkedinConfig.publishAsPage}
+                onCheckedChange={(checked) => 
+                  setLinkedinConfig(prev => ({ ...prev, publishAsPage: checked as boolean }))
+                }
+              />
+              <Label htmlFor="linkedin-page" className="text-sm">
+                Publish as company page
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (platform === 'medium') {
+      return (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-sm">Medium Configuration</CardTitle>
+            <CardDescription>Configure your Medium publishing settings</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="medium-token">Integration Token</Label>
+              <Input
+                id="medium-token"
+                type="password"
+                placeholder="Your Medium integration token"
+                value={mediumConfig.integrationToken}
+                onChange={(e) => setMediumConfig(prev => ({ ...prev, integrationToken: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="medium-author">Author ID</Label>
+              <Input
+                id="medium-author"
+                placeholder="Your Medium author ID"
+                value={mediumConfig.authorId}
+                onChange={(e) => setMediumConfig(prev => ({ ...prev, authorId: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="medium-status">Publish Status</Label>
+              <select
+                id="medium-status"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={mediumConfig.publishStatus}
+                onChange={(e) => setMediumConfig(prev => ({ ...prev, publishStatus: e.target.value }))}
+              >
+                <option value="draft">Draft</option>
+                <option value="unlisted">Unlisted</option>
+                <option value="public">Public</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (platform === 'ghost') {
+      return (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-sm">Ghost Configuration</CardTitle>
+            <CardDescription>Configure your Ghost CMS settings</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="ghost-url">Ghost API URL</Label>
+              <Input
+                id="ghost-url"
+                placeholder="https://your-ghost-site.com"
+                value={ghostConfig.apiUrl}
+                onChange={(e) => setGhostConfig(prev => ({ ...prev, apiUrl: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="ghost-admin-key">Admin API Key</Label>
+              <Input
+                id="ghost-admin-key"
+                type="password"
+                placeholder="Your Ghost admin API key"
+                value={ghostConfig.adminApiKey}
+                onChange={(e) => setGhostConfig(prev => ({ ...prev, adminApiKey: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="ghost-content-key">Content API Key</Label>
+              <Input
+                id="ghost-content-key"
+                type="password"
+                placeholder="Your Ghost content API key"
+                value={ghostConfig.contentApiKey}
+                onChange={(e) => setGhostConfig(prev => ({ ...prev, contentApiKey: e.target.value }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return null;
   };
 
@@ -246,30 +416,49 @@ export function ContentPublisher({ blogId, title, onPublishSuccess }: ContentPub
         {/* Platform Selection */}
         <div>
           <Label className="text-base font-medium">Select Publishing Platforms</Label>
-          <div className="mt-3 space-y-3">
-            {platforms.map((platform) => {
-              const Icon = platform.icon;
-              const isSelected = selectedPlatforms.includes(platform.id);
+          <div className="mt-3 space-y-4">
+            {['CMS', 'Social Media', 'Publishing'].map((category) => {
+              const categoryPlatforms = platforms.filter(p => p.category === category);
+              if (categoryPlatforms.length === 0) return null;
               
               return (
-                <div key={platform.id} className="space-y-2">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id={platform.id}
-                      checked={isSelected}
-                      onCheckedChange={() => handlePlatformToggle(platform.id)}
-                    />
-                    <Label
-                      htmlFor={platform.id}
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{platform.name}</span>
-                      <span className="text-sm text-muted-foreground">- {platform.description}</span>
-                    </Label>
+                <div key={category} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {category}
+                    </Badge>
                   </div>
-                  
-                  {isSelected && renderPlatformConfig(platform.id)}
+                  {categoryPlatforms.map((platform) => {
+                    const Icon = platform.icon;
+                    const isSelected = selectedPlatforms.includes(platform.id);
+                    
+                    return (
+                      <div key={platform.id} className="space-y-2 ml-4">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            id={platform.id}
+                            checked={isSelected}
+                            onCheckedChange={() => handlePlatformToggle(platform.id)}
+                          />
+                          <Label
+                            htmlFor={platform.id}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{platform.name}</span>
+                            <span className="text-sm text-muted-foreground">- {platform.description}</span>
+                            {!platform.available && (
+                              <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                Coming Soon
+                              </Badge>
+                            )}
+                          </Label>
+                        </div>
+                        
+                        {isSelected && renderPlatformConfig(platform.id)}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
