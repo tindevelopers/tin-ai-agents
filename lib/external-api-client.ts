@@ -104,7 +104,7 @@ export class ExternalAPIClient {
   private client: AxiosInstance;
   private baseURL: string;
 
-  constructor(baseURL: string = 'https://api-ai-blog-writer-613248238610.us-east1.run.app') {
+  constructor(baseURL: string = 'https://api-ai-blog-writer-dev-613248238610.europe-west1.run.app') {
     this.baseURL = baseURL;
     this.client = axios.create({
       baseURL: this.baseURL,
