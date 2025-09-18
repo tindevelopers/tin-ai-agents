@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 AI Blog Writer API: Getting keyword suggestions for "${keyword}"`);
 
     // Call the external AI Blog Writer API for keyword suggestions
-    const response = await fetch('https://api-ai-blog-writer-dev-kq42l26tuq-od.a.run.app/api/v1/keywords/suggest', {
+    const response = await fetch('https://api-ai-blog-writer-dev-613248238610.europe-west1.run.app/api/v1/keywords/suggest', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
